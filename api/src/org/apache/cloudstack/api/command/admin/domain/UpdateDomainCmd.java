@@ -33,8 +33,6 @@ import org.apache.cloudstack.region.RegionService;
 import com.cloud.domain.Domain;
 import com.cloud.user.Account;
 
-import java.util.Date;
-
 @APICommand(name = "updateDomain", description = "Updates a domain with a new name", responseObject = DomainResponse.class)
 public class UpdateDomainCmd extends BaseCmd {
     public static final Logger s_logger = Logger.getLogger(UpdateDomainCmd.class.getName());
@@ -55,11 +53,6 @@ public class UpdateDomainCmd extends BaseCmd {
                description = "Network domain for the domain's networks; empty string will update domainName with NULL value")
     private String networkDomain;
 
-    @Parameter(name = ApiConstants.MODIFIED,
-            type = CommandType.DATE,
-            description = "Last modified date time")
-    private Date modified;
-
     @Inject
     RegionService _regionService;
 
@@ -78,8 +71,6 @@ public class UpdateDomainCmd extends BaseCmd {
     public String getNetworkDomain() {
         return networkDomain;
     }
-
-    public Date getModified() { return modified; }
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////

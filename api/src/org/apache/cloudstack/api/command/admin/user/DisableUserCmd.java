@@ -36,8 +36,6 @@ import com.cloud.user.Account;
 import com.cloud.user.User;
 import com.cloud.user.UserAccount;
 
-import java.util.Date;
-
 @APICommand(name = "disableUser", description = "Disables a user account", responseObject = UserResponse.class)
 public class DisableUserCmd extends BaseAsyncCmd {
     public static final Logger s_logger = Logger.getLogger(DisableUserCmd.class.getName());
@@ -50,11 +48,6 @@ public class DisableUserCmd extends BaseAsyncCmd {
     @Parameter(name = ApiConstants.ID, type = CommandType.UUID, entityType = UserResponse.class, required = true, description = "Disables user by user ID.")
     private Long id;
 
-    @Parameter(name = ApiConstants.MODIFIED,
-            type = CommandType.DATE,
-            description = "Last modified date time")
-    private Date modified;
-
     @Inject
     RegionService _regionService;
 
@@ -65,8 +58,6 @@ public class DisableUserCmd extends BaseAsyncCmd {
     public Long getId() {
         return id;
     }
-
-    public Date getModified() { return modified; }
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////

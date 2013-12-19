@@ -849,7 +849,7 @@ public class ProjectManagerImpl extends ManagerBase implements ProjectManager {
                 project.setState(Project.State.Active);
                 _projectDao.update(projectId, project);
 
-                _accountMgr.enableAccount(project.getProjectAccountId(), null);
+                _accountMgr.enableAccount(project.getProjectAccountId());
             }
         });
 
@@ -890,7 +890,7 @@ public class ProjectManagerImpl extends ManagerBase implements ProjectManager {
 
         if (updateResult) {
             long projectAccountId = project.getProjectAccountId();
-            if (!_accountMgr.disableAccount(projectAccountId, null)) {
+            if (!_accountMgr.disableAccount(projectAccountId)) {
                 s_logger.warn("Failed to suspend all project's " + project + " resources; the resources will be suspended later by background thread");
             }
         } else {

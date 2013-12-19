@@ -16,7 +16,6 @@
 // under the License.
 package com.cloud.user;
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +43,7 @@ public interface AccountManager extends AccountService {
      * @param accountId
      * @return true if disable was successful, false otherwise
      */
-    boolean disableAccount(long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException;
+    boolean disableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException;
 
     boolean deleteAccount(AccountVO account, long callerUserId, Account caller);
 
@@ -83,7 +82,7 @@ public interface AccountManager extends AccountService {
      */
     Pair<User, Account> findUserByApiKey(String apiKey);
 
-    boolean enableAccount(long accountId, Date modified);
+    boolean enableAccount(long accountId);
 
     void buildACLSearchBuilder(SearchBuilder<? extends ControlledEntity> sb, Long domainId, boolean isRecursive, List<Long> permittedAccounts,
         ListProjectResourcesCriteria listProjectResourcesCriteria);
@@ -129,7 +128,7 @@ public interface AccountManager extends AccountService {
      *            account if success
      * @return true if disable was successful, false otherwise
      */
-    Account disableAccount(String accountName, Long domainId, Long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException;
+    Account disableAccount(String accountName, Long domainId, Long accountId) throws ConcurrentOperationException, ResourceUnavailableException;
 
     /**
      * Enables an account by accountId
@@ -141,7 +140,9 @@ public interface AccountManager extends AccountService {
      * @param accountId
      * @return account object
      */
-    Account enableAccount(String accountName, Long domainId, Long accountId, Date modified);
+    Account enableAccount(String accountName, Long domainId, Long accountId);
+
+    boolean deleteUser(long userId);
 
     /**
      * Deletes user by Id
@@ -165,7 +166,7 @@ public interface AccountManager extends AccountService {
      *            - the userId
      * @return UserAccount object
      */
-    UserAccount disableUser(long userId, Date modified);
+    UserAccount disableUser(long userId);
 
     /**
      * Enables a user
@@ -174,7 +175,7 @@ public interface AccountManager extends AccountService {
      *            - the userId
      * @return UserAccount object
      */
-    UserAccount enableUser(long userId, Date modified);
+    UserAccount enableUser(long userId);
 
     /**
      * Locks an account by accountId. A locked account cannot access the API, but will still have running VMs/IP
@@ -188,5 +189,5 @@ public interface AccountManager extends AccountService {
      * @param accountId
      * @return account object
      */
-    Account lockAccount(String accountName, Long domainId, Long accountId, Date modified);
+    Account lockAccount(String accountName, Long domainId, Long accountId);
 }

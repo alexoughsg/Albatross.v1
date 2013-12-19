@@ -32,8 +32,6 @@ import org.apache.cloudstack.region.RegionService;
 
 import com.cloud.user.Account;
 
-import java.util.Date;
-
 @APICommand(name = "enableAccount", description = "Enables an account", responseObject = AccountResponse.class)
 public class EnableAccountCmd extends BaseCmd {
     public static final Logger s_logger = Logger.getLogger(EnableAccountCmd.class.getName());
@@ -50,11 +48,6 @@ public class EnableAccountCmd extends BaseCmd {
 
     @Parameter(name = ApiConstants.DOMAIN_ID, type = CommandType.UUID, entityType = DomainResponse.class, description = "Enables specified account in this domain.")
     private Long domainId;
-
-    @Parameter(name = ApiConstants.MODIFIED,
-            type = CommandType.DATE,
-            description = "Last modified date time")
-    private Date modified;
 
     @Inject
     RegionService _regionService;
@@ -74,8 +67,6 @@ public class EnableAccountCmd extends BaseCmd {
     public Long getDomainId() {
         return domainId;
     }
-
-    public Date getModified() { return modified; }
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////

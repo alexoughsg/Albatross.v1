@@ -69,6 +69,9 @@ public class AccountVO implements Account {
     @Column(name = "default")
     boolean isDefault;
 
+    @Column(name = GenericDao.CREATED_COLUMN)
+    private Date created;
+
     @Column(name = GenericDao.MODIFIED_COLUMN)
     private Date modified;
 
@@ -82,12 +85,18 @@ public class AccountVO implements Account {
     }
 
     public AccountVO(String accountName, long domainId, String networkDomain, short type, String uuid) {
+        this(accountName, domainId, networkDomain, type, uuid, null);
+    }
+
+    public AccountVO(String accountName, long domainId, String networkDomain, short type, String uuid, Date created) {
         this.accountName = accountName;
         this.domainId = domainId;
         this.networkDomain = networkDomain;
         this.type = type;
         this.state = State.enabled;
         this.uuid = uuid;
+        this.created = created;
+        if (created != null)    this.modified = created;
     }
 
     public void setNeedsCleanup(boolean value) {
@@ -189,6 +198,10 @@ public class AccountVO implements Account {
     public boolean isDefault() {
         return isDefault;
     }
+
+    public Date getCreated() { return created; }
+
+    public void setCreated(Date created) { this.created = created; }
 
     public Date getModified() { return modified; }
 

@@ -3,8 +3,11 @@ package org.apache.cloudstack.mom.api_interface;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URLEncoder;
+import java.util.Date;
+import java.util.TimeZone;
 
 import com.amazonaws.util.json.JSONObject;
+import com.cloud.utils.DateUtil;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -350,6 +353,38 @@ public class BaseInterface {
         catch(Exception ex)
         {
             s_logger.error("Fail to queryAsyncJob", ex);
+        }
+
+        return null;
+    }
+
+    public JSONObject listEvents(String type, String keyword, Date startDate, Date endData)
+    {
+        try
+        {
+            TimeZone s_gmtTimeZone = TimeZone.getTimeZone("GMT");
+            String paramStr = "command=listEvents&response=json&sessionkey=" +  URLEncoder.encode(this.sessionKey, "UTF-8");
+            if (type != null)
+            {
+                paramStr += "&type=" + type;
+            }
+            if (keyword != null)
+            {
+                paramStr += "&keyword=" + keyword;
+            }
+            if (startDate != null)
+            {
+                paramStr += "&startdate=" + DateUtil.getDateDisplayString(s_gmtTimeZone, startDate);
+            }
+            if (endData != null)
+            {
+                paramStr += "&endata=" + DateUtil.getDateDisplayString(s_gmtTimeZone, endData);
+            }
+            return sendApacheGet(paramStr);
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Fail to listEvents", ex);
         }
 
         return null;

@@ -30,8 +30,6 @@ import com.cloud.user.Account;
 import com.cloud.user.User;
 import com.cloud.user.UserAccount;
 
-import java.util.Date;
-
 @APICommand(name = "lockUser", description = "Locks a user account", responseObject = UserResponse.class)
 public class LockUserCmd extends BaseCmd {
     public static final Logger s_logger = Logger.getLogger(LockUserCmd.class.getName());
@@ -41,11 +39,6 @@ public class LockUserCmd extends BaseCmd {
     /////////////////////////////////////////////////////
     //////////////// API parameters /////////////////////
     /////////////////////////////////////////////////////
-
-    @Parameter(name = ApiConstants.MODIFIED,
-            type = CommandType.DATE,
-            description = "Last modified date time")
-    private Date modified;
 
     @Parameter(name = ApiConstants.ID, type = CommandType.UUID, entityType = UserResponse.class, required = true, description = "Locks user by user ID.")
     private Long id;
@@ -57,8 +50,6 @@ public class LockUserCmd extends BaseCmd {
     public Long getId() {
         return id;
     }
-
-    public Date getModified() { return modified; }
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////
@@ -81,7 +72,7 @@ public class LockUserCmd extends BaseCmd {
 
     @Override
     public void execute() {
-        UserAccount user = _accountService.lockUser(getId(), getModified());
+        UserAccount user = _accountService.lockUser(getId());
         if (user != null) {
             UserResponse response = _responseGenerator.createUserResponse(user);
             response.setResponseName(getCommandName());

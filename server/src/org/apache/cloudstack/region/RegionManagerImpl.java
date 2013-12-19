@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Date;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
@@ -200,13 +199,13 @@ public class RegionManagerImpl extends ManagerBase implements RegionManager, Man
      * {@inheritDoc}
      */
     @Override
-    public Account disableAccount(String accountName, Long domainId, Long accountId, Boolean lockRequested, Date modifiedDate) throws ConcurrentOperationException,
+    public Account disableAccount(String accountName, Long domainId, Long accountId, Boolean lockRequested) throws ConcurrentOperationException,
         ResourceUnavailableException {
         Account account = null;
         if (lockRequested) {
-            account = _accountMgr.lockAccount(accountName, domainId, accountId, modifiedDate);
+            account = _accountMgr.lockAccount(accountName, domainId, accountId);
         } else {
-            account = _accountMgr.disableAccount(accountName, domainId, accountId, modifiedDate);
+            account = _accountMgr.disableAccount(accountName, domainId, accountId);
         }
         return account;
     }
@@ -215,8 +214,8 @@ public class RegionManagerImpl extends ManagerBase implements RegionManager, Man
      * {@inheritDoc}
      */
     @Override
-    public Account enableAccount(String accountName, Long domainId, Long accountId, Date modifiedDate) {
-        return _accountMgr.enableAccount(accountName, domainId, accountId, modifiedDate);
+    public Account enableAccount(String accountName, Long domainId, Long accountId) {
+        return _accountMgr.enableAccount(accountName, domainId, accountId);
     }
 
     /**
@@ -255,16 +254,16 @@ public class RegionManagerImpl extends ManagerBase implements RegionManager, Man
      * {@inheritDoc}
      */
     @Override
-    public UserAccount disableUser(Long userId, Date modifiedDate) {
-        return _accountMgr.disableUser(userId, modifiedDate);
+    public UserAccount disableUser(Long userId) {
+        return _accountMgr.disableUser(userId);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public UserAccount enableUser(long userId, Date modifiedDate) {
-        return _accountMgr.enableUser(userId, modifiedDate);
+    public UserAccount enableUser(long userId) {
+        return _accountMgr.enableUser(userId);
     }
 
 }

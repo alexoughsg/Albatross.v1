@@ -215,6 +215,8 @@ CREATE VIEW `cloud`.`volume_view` AS
 
 UPDATE `cloud`.`configuration` SET `description` = 'If set to true, StartCommand, StopCommand, CopyCommand, MigrateCommand will be synchronized on the agent side. If set to false, these commands become asynchronous. Default value is true.' WHERE `name` = 'execute.in.sequence.hypervisor.commands';
 
+ALTER TABLE domain ADD created TIMESTAMP NULL;
 ALTER TABLE domain ADD modified TIMESTAMP NULL;
+ALTER TABLE account ADD created TIMESTAMP NULL;
 ALTER TABLE account ADD modified TIMESTAMP NULL;
 ALTER TABLE user ADD modified TIMESTAMP NULL;

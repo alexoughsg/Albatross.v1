@@ -34,8 +34,6 @@ import com.cloud.user.Account;
 import com.cloud.user.User;
 import com.cloud.user.UserAccount;
 
-import java.util.Date;
-
 @APICommand(name = "updateUser", description = "Updates a user account", responseObject = UserResponse.class)
 public class UpdateUserCmd extends BaseCmd {
     public static final Logger s_logger = Logger.getLogger(UpdateUserCmd.class.getName());
@@ -76,11 +74,6 @@ public class UpdateUserCmd extends BaseCmd {
 
     @Parameter(name = ApiConstants.USERNAME, type = CommandType.STRING, description = "Unique username")
     private String username;
-
-    @Parameter(name = ApiConstants.MODIFIED,
-            type = CommandType.DATE,
-            description = "Last modified date time")
-    private Date modified;
 
     @Inject
     RegionService _regionService;
@@ -124,8 +117,6 @@ public class UpdateUserCmd extends BaseCmd {
     public String getUsername() {
         return username;
     }
-
-    public Date getModified() { return modified; }
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////

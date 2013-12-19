@@ -73,6 +73,9 @@ public class DomainVO implements Domain {
     @Column(name = "uuid")
     private String uuid;
 
+    @Column(name = GenericDao.CREATED_COLUMN)
+    private Date created;
+
     @Column(name = GenericDao.MODIFIED_COLUMN)
     private Date modified;
 
@@ -91,6 +94,10 @@ public class DomainVO implements Domain {
     }
 
     public DomainVO(String name, long owner, Long parentId, String networkDomain, String uuid) {
+        this(name, owner, parentId, networkDomain, uuid, null);
+    }
+
+    public DomainVO(String name, long owner, Long parentId, String networkDomain, String uuid, Date created) {
         this.parent = parentId;
         this.name = name;
         this.accountId = owner;
@@ -99,6 +106,7 @@ public class DomainVO implements Domain {
         this.state = Domain.State.Active;
         this.networkDomain = networkDomain;
         this.uuid = uuid;
+        if (created != null)    this.modified = created;
     }
 
     @Override
@@ -212,6 +220,10 @@ public class DomainVO implements Domain {
     public void setUuid(String uuid) {
         this.uuid = uuid;
     }
+
+    public Date getCreated() { return created; }
+
+    public void setCreated(Date created) { this.created = created; }
 
     public Date getModified() { return modified; }
 

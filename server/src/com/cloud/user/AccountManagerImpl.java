@@ -29,7 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.Date;
-import java.util.TimeZone;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
@@ -39,7 +38,6 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import com.cloud.utils.DateUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
@@ -517,17 +515,13 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         return _userDao.update(Long.valueOf(userId), userForUpdate);
     }
 
-    private Date getModified(Date modified)
-    {
-        if (modified != null)   return modified;
-        TimeZone s_gmtTimeZone = TimeZone.getTimeZone("GMT");
-        return DateUtil.parseDateString(s_gmtTimeZone, DateUtil.getDateDisplayString(s_gmtTimeZone, new Date()));
+    @Override
+    public boolean enableAccount(long accountId) {
+        return enableAccount(accountId, null);
     }
 
-    @Override
-    public boolean enableAccount(long accountId, Date modifiedDate) {
+    public boolean enableAccount(long accountId, Date modified) {
         boolean success = false;
-        Date modified = getModified(modifiedDate);
         AccountVO acctForUpdate = _accountDao.createForUpdate();
         acctForUpdate.setState(State.enabled);
         acctForUpdate.setNeedsCleanup(false);
@@ -536,14 +530,13 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         return success;
     }
 
-    protected boolean lockAccount(long accountId, Date modifiedDate) {
+    protected boolean lockAccount(long accountId, Date modified) {
         boolean success = false;
         Account account = _accountDao.findById(accountId);
         if (account != null) {
             if (account.getState().equals(State.locked)) {
                 return true; // already locked, no-op
             } else if (account.getState().equals(State.enabled)) {
-                Date modified = getModified(modifiedDate);
                 AccountVO acctForUpdate = _accountDao.createForUpdate();
                 acctForUpdate.setState(State.locked);
                 acctForUpdate.setModified(modified);
@@ -561,10 +554,14 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     public boolean deleteAccount(AccountVO account, long callerUserId, Account caller) {
+        return deleteAccount(account, callerUserId, caller, null);
+    }
+
+    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller, Date removed) {
         long accountId = account.getId();
 
         // delete the account record
-        if (!_accountDao.remove(accountId)) {
+        if (!_accountDao.remove(accountId, removed)) {
             s_logger.error("Unable to delete account " + accountId);
             return false;
         }
@@ -573,10 +570,10 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             s_logger.debug("Removed account " + accountId);
         }
 
-        return cleanupAccount(account, callerUserId, caller);
+        return cleanupAccount(account, callerUserId, caller, removed);
     }
 
-    protected boolean cleanupAccount(AccountVO account, long callerUserId, Account caller) {
+    protected boolean cleanupAccount(AccountVO account, long callerUserId, Account caller, Date removed) {
         long accountId = account.getId();
         boolean accountCleanupNeeded = false;
 
@@ -584,7 +581,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             // cleanup the users from the account
             List<UserVO> users = _userDao.listByAccount(accountId);
             for (UserVO user : users) {
-                if (!_userDao.remove(user.getId())) {
+                if (!_userDao.remove(user.getId(), removed)) {
                     s_logger.error("Unable to delete user: " + user + " as a part of account " + account + " cleanup");
                     accountCleanupNeeded = true;
                 }
@@ -812,7 +809,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     }
 
     @Override
-    public boolean disableAccount(long accountId, Date modifiedDate) throws ConcurrentOperationException, ResourceUnavailableException {
+    public boolean disableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException {
+        return disableAccount(accountId, null);
+    }
+
+    public boolean disableAccount(long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException {
         boolean success = false;
         if (accountId <= 2) {
             if (s_logger.isInfoEnabled()) {
@@ -825,7 +826,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         if ((account == null) || (account.getState().equals(State.disabled) && !account.getNeedsCleanup())) {
             success = true;
         } else {
-            Date modified = getModified(modifiedDate);
             AccountVO acctForUpdate = _accountDao.createForUpdate();
             acctForUpdate.setState(State.disabled);
             acctForUpdate.setModified(modified);
@@ -884,7 +884,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     @DB
     @ActionEvents({
         @ActionEvent(eventType = EventTypes.EVENT_ACCOUNT_CREATE, eventDescription = "creating Account"),
-        @ActionEvent(eventType = EventTypes.EVENT_USER_CREATE, eventDescription = "creating User")
+        //@ActionEvent(eventType = EventTypes.EVENT_USER_CREATE, eventDescription = "creating User")
     })
     public UserAccount createUserAccount(final String userName, final String password, final String firstName, final String lastName, final String email,
         final String timezone, String accountName,
@@ -946,7 +946,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
                 long accountId = account.getId();
 
                 // create the first user for the account
-                UserVO user = createUser(accountId, userName, password, firstName, lastName, email, timezone, userUUID);
+                UserVO user = createUser(accountId, userName, password, firstName, lastName, email, timezone, userUUID, null);
 
                 if (accountType == Account.ACCOUNT_TYPE_RESOURCE_DOMAIN_ADMIN) {
                     // set registration token
@@ -970,7 +970,12 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_USER_CREATE, eventDescription = "creating User")
     public UserVO createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
-        String userUUID) {
+                             String userUUID) {
+        return createUser(userName, password, firstName, lastName, email, timeZone, accountName, domainId, userUUID, null);
+    }
+
+    public UserVO createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
+        String userUUID, Date created) {
 
         // default domain to ROOT if not specified
         if (domainId == null) {
@@ -999,7 +1004,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             throw new CloudRuntimeException("The user " + userName + " already exists in domain " + domainId);
         }
         UserVO user = null;
-        user = createUser(account.getId(), userName, password, firstName, lastName, email, timeZone, userUUID);
+        user = createUser(account.getId(), userName, password, firstName, lastName, email, timeZone, userUUID, created);
         return user;
     }
 
@@ -1015,7 +1020,16 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         String secretKey = cmd.getSecretKey();
         String timeZone = cmd.getTimezone();
         String userName = cmd.getUsername();
-        Date modified = getModified(cmd.getModified());
+        return updateUser(id, apiKey, firstName, email, lastName, password, secretKey, timeZone, userName);
+    }
+
+    public UserAccount updateUser(Long id, String apiKey, String firstName, String email, String lastName, String password, String secretKey, String timeZone,
+                                  String userName) {
+        return updateUser(id, apiKey, firstName, email, lastName, password, secretKey, timeZone, userName, null);
+    }
+
+    public UserAccount updateUser(Long id, String apiKey, String firstName, String email, String lastName, String password, String secretKey, String timeZone,
+                                  String userName, Date modified) {
 
         // Input validation
         UserVO user = _userDao.getUser(id);
@@ -1139,7 +1153,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_USER_DISABLE, eventDescription = "disabling User", async = true)
-    public UserAccount disableUser(long userId, Date modifiedDate) {
+    public UserAccount disableUser(long userId) {
+        return disableUser(userId, null);
+    }
+
+    public UserAccount disableUser(long userId, Date modified) {
         Account caller = CallContext.current().getCallingAccount();
 
         // Check if user exists in the system
@@ -1162,7 +1180,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
         checkAccess(caller, null, true, account);
 
-        Date modified = getModified(modifiedDate);
         boolean success = doSetUserStatus(userId, State.disabled, modified);
         if (success) {
 
@@ -1178,8 +1195,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     @Override
     @DB
     @ActionEvent(eventType = EventTypes.EVENT_USER_ENABLE, eventDescription = "enabling User")
-    public UserAccount enableUser(final long userId, Date modifiedDate) {
+    public UserAccount enableUser(long userId) {
+        return enableUser(userId, null);
+    }
 
+    public UserAccount enableUser(final long userId, final Date modified) {
         Account caller = CallContext.current().getCallingAccount();
 
         // Check if user exists in the system
@@ -1201,7 +1221,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
         checkAccess(caller, null, true, account);
 
-        final Date modified = getModified(modifiedDate);
         boolean success = Transaction.execute(new TransactionCallback<Boolean>() {
             @Override
             public Boolean doInTransaction(TransactionStatus status) {
@@ -1228,7 +1247,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_USER_LOCK, eventDescription = "locking User")
-    public UserAccount lockUser(long userId, Date modifiedDate) {
+    public UserAccount lockUser(long userId) {
+        return lockUser(userId, null);
+    }
+
+    public UserAccount lockUser(long userId, Date modified) {
         Account caller = CallContext.current().getCallingAccount();
 
         // Check if user with id exists in the system
@@ -1259,7 +1282,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             // already locked...no-op
             return _userAccountDao.findById(userId);
         } else if (user.getState().equals(State.enabled)) {
-            Date modified = getModified(modifiedDate);
             success = doSetUserStatus(user.getId(), State.locked, modified);
 
             boolean lockAccount = true;
@@ -1339,7 +1361,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_ACCOUNT_ENABLE, eventDescription = "enabling account", async = true)
-    public AccountVO enableAccount(String accountName, Long domainId, Long accountId, Date modifiedDate) {
+    public AccountVO enableAccount(String accountName, Long domainId, Long accountId) {
+        return enableAccount(accountName, domainId, accountId, null);
+    }
+
+    public AccountVO enableAccount(String accountName, Long domainId, Long accountId, Date modified) {
 
         // Check if account exists
         Account account = null;
@@ -1361,7 +1387,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         Account caller = CallContext.current().getCallingAccount();
         checkAccess(caller, null, true, account);
 
-        Date modified = getModified(modifiedDate);
         boolean success = enableAccount(account.getId(), modified);
         if (success) {
 
@@ -1375,7 +1400,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_ACCOUNT_LOCK, eventDescription = "locking account", async = true)
-    public AccountVO lockAccount(String accountName, Long domainId, Long accountId, Date modifiedDate) {
+    public AccountVO lockAccount(String accountName, Long domainId, Long accountId) {
+        return lockAccount(accountName, domainId, accountId, null);
+    }
+
+    public AccountVO lockAccount(String accountName, Long domainId, Long accountId, Date modified) {
         Account caller = CallContext.current().getCallingAccount();
 
         Account account = null;
@@ -1396,7 +1425,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
         checkAccess(caller, null, true, account);
 
-        Date modified = getModified(modifiedDate);
         if (lockAccount(account.getId(), modified)) {
             CallContext.current().putContextParameter(Account.class, account.getUuid());
             return _accountDao.findById(account.getId());
@@ -1407,7 +1435,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_ACCOUNT_DISABLE, eventDescription = "disabling account", async = true)
-    public AccountVO disableAccount(String accountName, Long domainId, Long accountId, Date modifiedDate) throws ConcurrentOperationException, ResourceUnavailableException {
+    public AccountVO disableAccount(String accountName, Long domainId, Long accountId) throws ConcurrentOperationException, ResourceUnavailableException {
+        return disableAccount(accountName, domainId, accountId, null);
+    }
+
+    public AccountVO disableAccount(String accountName, Long domainId, Long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException {
         Account caller = CallContext.current().getCallingAccount();
 
         Account account = null;
@@ -1427,7 +1459,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
         checkAccess(caller, null, true, account);
 
-        Date modified = getModified(modifiedDate);
         if (disableAccount(account.getId(), modified)) {
             CallContext.current().putContextParameter(Account.class, account.getUuid());
             return _accountDao.findById(account.getId());
@@ -1445,8 +1476,15 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         String accountName = cmd.getAccountName();
         String newAccountName = cmd.getNewName();
         String networkDomain = cmd.getNetworkDomain();
-        final Map<String, String> details = cmd.getDetails();
-        Date modified = getModified(cmd.getModified());
+        Map<String, String> details = cmd.getDetails();
+        return updateAccount(accountId, domainId, accountName, newAccountName, networkDomain, details);
+    }
+
+    public AccountVO updateAccount(Long accountId, Long domainId, String accountName, String newAccountName, String networkDomain, Map<String, String> details) {
+        return updateAccount(accountId, domainId, accountName, newAccountName, networkDomain, details, null);
+    }
+
+    public AccountVO updateAccount(Long accountId, Long domainId, String accountName, String newAccountName, String networkDomain, final Map<String, String> details, Date modified) {
 
         boolean success = false;
         Account account = null;
@@ -1530,8 +1568,18 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     @ActionEvent(eventType = EventTypes.EVENT_USER_DELETE, eventDescription = "deleting User")
     public boolean deleteUser(DeleteUserCmd deleteUserCmd) {
         long id = deleteUserCmd.getId();
+        return deleteUser(id);
+    }
 
-        UserVO user = _userDao.findById(id);
+    @Override
+    public boolean deleteUser(long userId)
+    {
+        return deleteUser(userId, null);
+    }
+
+    public boolean deleteUser(long userId, Date removed)
+    {
+        UserVO user = _userDao.findById(userId);
 
         if (user == null) {
             throw new InvalidParameterValueException("The specified user doesn't exist in the system");
@@ -1551,7 +1599,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
         checkAccess(CallContext.current().getCallingAccount(), null, true, account);
         CallContext.current().putContextParameter(User.class, user.getUuid());
-        return _userDao.remove(id);
+        return _userDao.remove(userId, removed);
     }
 
     protected class AccountCleanupTask extends ManagedContextRunnable {
@@ -1575,7 +1623,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
                     s_logger.info("Found " + removedAccounts.size() + " removed accounts to cleanup");
                     for (AccountVO account : removedAccounts) {
                         s_logger.debug("Cleaning up " + account.getId());
-                        cleanupAccount(account, getSystemUser().getId(), getSystemAccount());
+                        cleanupAccount(account, getSystemUser().getId(), getSystemAccount(), null);
                     }
 
                     // cleanup disabled accounts
@@ -1768,7 +1816,13 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     @Override
     @DB
     public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details,
-        final String uuid) {
+                                   final String uuid) {
+        return createAccount(accountName, accountType, domainId, networkDomain, details, uuid, null);
+    }
+
+    @DB
+    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details,
+        final String uuid, Date created) {
         // Validate domain
         Domain domain = _domainMgr.getDomain(domainId);
         if (domain == null) {
@@ -1835,7 +1889,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         });
     }
 
-    protected UserVO createUser(long accountId, String userName, String password, String firstName, String lastName, String email, String timezone, String userUUID) {
+    protected UserVO createUser(long accountId, String userName, String password, String firstName, String lastName, String email, String timezone, String userUUID, Date created) {
         if (s_logger.isDebugEnabled()) {
             s_logger.debug("Creating user: " + userName + ", accountId: " + accountId + " timezone:" + timezone);
         }
@@ -1854,7 +1908,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         if (userUUID == null) {
             userUUID = UUID.randomUUID().toString();
         }
-        UserVO user = _userDao.persist(new UserVO(accountId, userName, encodedPassword, firstName, lastName, email, timezone, userUUID));
+        UserVO user = _userDao.persist(new UserVO(accountId, userName, encodedPassword, firstName, lastName, email, timezone, userUUID, created));
         CallContext.current().putContextParameter(User.class, user.getUuid());
         return user;
     }

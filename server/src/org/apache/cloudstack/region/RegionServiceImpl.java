@@ -134,7 +134,7 @@ public class RegionServiceImpl extends ManagerBase implements RegionService, Man
      */
     @Override
     public Account disableAccount(DisableAccountCmd cmd) throws ConcurrentOperationException, ResourceUnavailableException {
-        return _regionMgr.disableAccount(cmd.getAccountName(), cmd.getDomainId(), cmd.getId(), cmd.getLockRequested(), cmd.getModified());
+        return _regionMgr.disableAccount(cmd.getAccountName(), cmd.getDomainId(), cmd.getId(), cmd.getLockRequested());
     }
 
     /**
@@ -142,7 +142,7 @@ public class RegionServiceImpl extends ManagerBase implements RegionService, Man
      */
     @Override
     public Account enableAccount(EnableAccountCmd cmd) {
-        return _regionMgr.enableAccount(cmd.getAccountName(), cmd.getDomainId(), cmd.getId(), cmd.getModified());
+        return _regionMgr.enableAccount(cmd.getAccountName(), cmd.getDomainId(), cmd.getId());
     }
 
     /**
@@ -182,7 +182,7 @@ public class RegionServiceImpl extends ManagerBase implements RegionService, Man
      */
     @Override
     public UserAccount disableUser(DisableUserCmd cmd) {
-        return _regionMgr.disableUser(cmd.getId(), cmd.getModified());
+        return _regionMgr.disableUser(cmd.getId());
     }
 
     /**
@@ -190,7 +190,7 @@ public class RegionServiceImpl extends ManagerBase implements RegionService, Man
      */
     @Override
     public UserAccount enableUser(EnableUserCmd cmd) {
-        return _regionMgr.enableUser(cmd.getId(), cmd.getModified());
+        return _regionMgr.enableUser(cmd.getId());
     }
 
 }

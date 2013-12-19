@@ -110,6 +110,10 @@ public class UserVO implements User, Identity, InternalIdentity {
     }
 
     public UserVO(long accountId, String username, String password, String firstName, String lastName, String email, String timezone, String uuid) {
+        this(accountId, username, password, firstName, lastName, email, timezone, uuid, null);
+    }
+
+    public UserVO(long accountId, String username, String password, String firstName, String lastName, String email, String timezone, String uuid, Date created) {
         this.accountId = accountId;
         this.username = username;
         this.password = password;
@@ -119,6 +123,8 @@ public class UserVO implements User, Identity, InternalIdentity {
         this.timezone = timezone;
         this.state = State.enabled;
         this.uuid = uuid;
+        this.created = created;
+        if (created != null)    this.modified = created;
     }
 
     @Override

@@ -37,8 +37,6 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.Account;
 
-import java.util.Date;
-
 @APICommand(name = "disableAccount", description = "Disables an account", responseObject = AccountResponse.class)
 public class DisableAccountCmd extends BaseAsyncCmd {
     public static final Logger s_logger = Logger.getLogger(DisableAccountCmd.class.getName());
@@ -58,11 +56,6 @@ public class DisableAccountCmd extends BaseAsyncCmd {
 
     @Parameter(name = ApiConstants.LOCK, type = CommandType.BOOLEAN, required = true, description = "If true, only lock the account; else disable the account")
     private Boolean lockRequested;
-
-    @Parameter(name = ApiConstants.MODIFIED,
-            type = CommandType.DATE,
-            description = "Last modified date time")
-    private Date modified;
 
     @Inject
     RegionService _regionService;
@@ -86,8 +79,6 @@ public class DisableAccountCmd extends BaseAsyncCmd {
     public Boolean getLockRequested() {
         return lockRequested;
     }
-
-    public Date getModified() { return modified; }
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////
