@@ -248,11 +248,6 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
-    public boolean deleteUser(long arg0) {
-        return true;
-    }
-
-    @Override
     public boolean deleteUser(DeleteUserCmd arg0) {
         // TODO Auto-generated method stub
         return false;
@@ -265,15 +260,15 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
-    public Account disableAccount(String arg0, Long arg1, Long arg2) throws ConcurrentOperationException, ResourceUnavailableException {
+    public boolean disableAccount(long arg0) throws ConcurrentOperationException, ResourceUnavailableException {
         // TODO Auto-generated method stub
-        return null;
+        return false;
     }
 
     @Override
-    public boolean disableAccount(long arg2) throws ConcurrentOperationException, ResourceUnavailableException {
+    public Account disableAccount(String arg0, Long arg1, Long arg2) throws ConcurrentOperationException, ResourceUnavailableException {
         // TODO Auto-generated method stub
-        return false;
+        return null;
     }
 
     @Override

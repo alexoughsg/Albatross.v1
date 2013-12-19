@@ -175,7 +175,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         return createDomain(name, parentId, ownerId, networkDomain, domainUUID, null);
     }
 
-    @Override
     @DB
     public Domain createDomain(final String name, final Long parentId, final Long ownerId, final String networkDomain, String domainUUID, final Date created) {
         // Verify network domain
@@ -257,7 +256,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         return deleteDomain(domain, cleanup, null);
     }
 
-    @Override
     public boolean deleteDomain(DomainVO domain, Boolean cleanup, Date removed) {
         // mark domain as inactive
         s_logger.debug("Marking domain id=" + domain.getId() + " as " + Domain.State.Inactive + " before actually deleting it");

@@ -1571,7 +1571,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         return deleteUser(id);
     }
 
-    @Override
     public boolean deleteUser(long userId)
     {
         return deleteUser(userId, null);

@@ -142,8 +142,6 @@ public interface AccountManager extends AccountService {
      */
     Account enableAccount(String accountName, Long domainId, Long accountId);
 
-    boolean deleteUser(long userId);
-
     /**
      * Deletes user by Id
      * @param deleteUserCmd

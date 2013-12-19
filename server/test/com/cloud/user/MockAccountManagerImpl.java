@@ -120,12 +120,6 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
-    public boolean deleteUser(long userId) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
     public boolean isAdmin(short accountType) {
         // TODO Auto-generated method stub
         return false;
