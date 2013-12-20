@@ -20,7 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Date;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
@@ -172,11 +171,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
     @Override
     @DB
     public Domain createDomain(final String name, final Long parentId, final Long ownerId, final String networkDomain, String domainUUID) {
-        return createDomain(name, parentId, ownerId, networkDomain, domainUUID, null);
-    }
-
-    @DB
-    public Domain createDomain(final String name, final Long parentId, final Long ownerId, final String networkDomain, String domainUUID, final Date created) {
         // Verify network domain
         if (networkDomain != null) {
             if (!NetUtils.verifyDomainName(networkDomain)) {
@@ -203,7 +197,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         DomainVO domain = Transaction.execute(new TransactionCallback<DomainVO>() {
             @Override
             public DomainVO doInTransaction(TransactionStatus status) {
-                DomainVO domain = _domainDao.create(new DomainVO(name, ownerId, parentId, networkDomain, domainUUIDFinal, created));
+                DomainVO domain = _domainDao.create(new DomainVO(name, ownerId, parentId, networkDomain, domainUUIDFinal));
                 _resourceCountDao.createResourceCounts(domain.getId(), ResourceLimit.ResourceOwnerType.Domain);
                 return domain;
             }
@@ -253,10 +247,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
 
     @Override
     public boolean deleteDomain(DomainVO domain, Boolean cleanup) {
-        return deleteDomain(domain, cleanup, null);
-    }
-
-    public boolean deleteDomain(DomainVO domain, Boolean cleanup, Date removed) {
         // mark domain as inactive
         s_logger.debug("Marking domain id=" + domain.getId() + " as " + Domain.State.Inactive + " before actually deleting it");
         domain.setState(Domain.State.Inactive);
@@ -267,7 +257,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         try {
             long ownerId = domain.getAccountId();
             if ((cleanup != null) && cleanup.booleanValue()) {
-                if (!cleanupDomain(domain.getId(), ownerId, removed)) {
+                if (!cleanupDomain(domain.getId(), ownerId)) {
                     rollBackState = true;
                     CloudRuntimeException e =
                         new CloudRuntimeException("Failed to clean up domain resources and sub domains, delete failed on domain " + domain.getName() + " (id: " +
@@ -285,7 +275,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                     hasDedicatedResources = true;
                 }
                 if (accountsForCleanup.isEmpty() && networkIds.isEmpty() && !hasDedicatedResources) {
-                    if (!_domainDao.remove(domain.getId(), removed)) {
+                    if (!_domainDao.remove(domain.getId())) {
                         rollBackState = true;
                         CloudRuntimeException e =
                             new CloudRuntimeException("Delete failed on domain " + domain.getName() + " (id: " + domain.getId() +
@@ -343,7 +333,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         }
     }
 
-    private boolean cleanupDomain(Long domainId, Long ownerId, Date removed) throws ConcurrentOperationException, ResourceUnavailableException {
+    private boolean cleanupDomain(Long domainId, Long ownerId) throws ConcurrentOperationException, ResourceUnavailableException {
         s_logger.debug("Cleaning up domain id=" + domainId);
         boolean success = true;
         {
@@ -367,7 +357,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
 
             // cleanup sub-domains first
             for (DomainVO domain : domains) {
-                success = (success && cleanupDomain(domain.getId(), domain.getAccountId(), removed));
+                success = (success && cleanupDomain(domain.getId(), domain.getAccountId()));
                 if (!success) {
                     s_logger.warn("Failed to cleanup domain id=" + domain.getId());
                 }
@@ -429,14 +419,14 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
             if (dedicatedResources != null && !dedicatedResources.isEmpty()) {
                 s_logger.debug("Releasing dedicated resources for domain" + domainId);
                 for (DedicatedResourceVO dr : dedicatedResources) {
-                    if (!_dedicatedDao.remove(dr.getId(), removed)) {
+                    if (!_dedicatedDao.remove(dr.getId())) {
                         s_logger.warn("Fail to release dedicated resources for domain " + domainId);
                         return false;
                     }
                 }
             }
             //delete domain
-            deleteDomainSuccess = _domainDao.remove(domainId, removed);
+            deleteDomainSuccess = _domainDao.remove(domainId);
 
             // Delete resource count and resource limits entries set for this domain (if there are any).
             _resourceCountDao.removeEntriesByOwner(domainId, ResourceOwnerType.Domain);
@@ -577,17 +567,9 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
     @ActionEvent(eventType = EventTypes.EVENT_DOMAIN_UPDATE, eventDescription = "updating Domain")
     @DB
     public DomainVO updateDomain(UpdateDomainCmd cmd) {
-        Long domainId = cmd.getId();
-        String domainName = cmd.getDomainName();
-        String networkDomain = cmd.getNetworkDomain();
-        return updateDomain(domainId, domainName, networkDomain);
-    }
-
-    public DomainVO updateDomain(Long domainId, String domainName, String networkDomain) {
-        return updateDomain(domainId, domainName, networkDomain, null);
-    }
-
-    public DomainVO updateDomain(final Long domainId, final String domainName, final String networkDomain, final Date modified) {
+        final Long domainId = cmd.getId();
+        final String domainName = cmd.getDomainName();
+        final String networkDomain = cmd.getNetworkDomain();
 
         // check if domain exists in the system
         final DomainVO domain = _domainDao.findById(domainId);
@@ -639,7 +621,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                     updateDomainChildren(domain, updatedDomainPath);
                     domain.setName(domainName);
                     domain.setPath(updatedDomainPath);
-                    domain.setModified(modified);
                 }
 
                 if (networkDomain != null) {
@@ -649,7 +630,6 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                         domain.setNetworkDomain(networkDomain);
                     }
                 }
-
                 _domainDao.update(domainId, domain);
                 CallContext.current().putContextParameter(Domain.class, domain.getUuid());
                 CallContext.current().putContextParameter(domain.getUuid(), currentDomainName);

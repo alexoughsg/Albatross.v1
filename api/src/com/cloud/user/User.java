@@ -30,6 +30,8 @@ public interface User extends OwnedBy, InternalIdentity {
 
     public Date getCreated();
 
+    public Date getModified();
+
     public Date getRemoved();
 
     public String getUsername();

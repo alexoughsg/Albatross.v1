@@ -63,6 +63,7 @@ public class UserAccountJoinDaoImpl extends GenericDaoBase<UserAccountJoinVO, Lo
         userResponse.setCreated(usr.getCreated());
         userResponse.setDomainId(usr.getDomainUuid());
         userResponse.setDomainName(usr.getDomainName());
+        userResponse.setDomainPath(usr.getDomainPath());
         userResponse.setEmail(usr.getEmail());
         userResponse.setFirstname(usr.getFirstname());
         userResponse.setId(usr.getUuid());
@@ -73,6 +74,7 @@ public class UserAccountJoinDaoImpl extends GenericDaoBase<UserAccountJoinVO, Lo
         userResponse.setApiKey(usr.getApiKey());
         userResponse.setSecretKey(usr.getSecretKey());
         userResponse.setIsDefault(usr.isDefault());
+        userResponse.setModified(usr.getModified());
 
         // set async job
         if (usr.getJobId() != null) {

@@ -23,6 +23,23 @@ public class DomainSubscriber extends MultiRegionSubscriber {
 
         if (!isExecutable())    return;
 
+        /*String[][] remoteRegions = {
+                {"localhost", "admin", "password"},
+                //{"10.88.90.82", "admin", "password"},
+                //{"207.19.99.100", "admin", "password"}
+        };
+        DomainFullScanner domainScanner = new DomainFullScanner();
+        domainScanner.refreshAll(remoteRegions);
+
+        AccountFullScanner accountScanner = new AccountFullScanner();
+        accountScanner.refreshAll(remoteRegions);
+
+        UserFullScanner userScanner = new UserFullScanner();
+        userScanner.refreshAll(remoteRegions);*/
+
+
+
+
         process(event);
     }
 
@@ -31,7 +48,6 @@ public class DomainSubscriber extends MultiRegionSubscriber {
         String entityUUID = this.descMap.get("entityuuid");
         String oldDomainName = this.descMap.get("oldentityname");
         Domain domain = this.domainDao.findByUuidIncludingRemoved(entityUUID);
-        Domain parentDomain = this.domainDao.findByIdIncludingRemoved(domain.getParent());
 
         String methodName = event.getEventType().split("-")[1].toLowerCase();
         for (int index = 0; index < this.regions.length; index++)
@@ -43,8 +59,8 @@ public class DomainSubscriber extends MultiRegionSubscriber {
             try
             {
                 DomainService domainService = new DomainService(hostName, userName, password);
-                Method method = domainService.getClass().getMethod(methodName, Domain.class, Domain.class, String.class);
-                method.invoke(domainService, domain, parentDomain, oldDomainName);
+                Method method = domainService.getClass().getMethod(methodName, Domain.class, String.class);
+                method.invoke(domainService, domain, oldDomainName);
             }
             catch(NoSuchMethodException mex)
             {

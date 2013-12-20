@@ -6,6 +6,7 @@ import java.net.URLEncoder;
 import java.util.Date;
 import java.util.TimeZone;
 
+import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.utils.DateUtil;
 import com.google.gson.Gson;
@@ -358,7 +359,7 @@ public class BaseInterface {
         return null;
     }
 
-    public JSONObject listEvents(String type, String keyword, Date startDate, Date endData)
+    public JSONArray listEvents(String type, String keyword, Date startDate, Date endData)
     {
         try
         {
@@ -370,17 +371,17 @@ public class BaseInterface {
             }
             if (keyword != null)
             {
-                paramStr += "&keyword=" + keyword;
+                paramStr += "&keyword=" + URLEncoder.encode(keyword, "UTF-8");
             }
             if (startDate != null)
             {
-                paramStr += "&startdate=" + DateUtil.getDateDisplayString(s_gmtTimeZone, startDate);
+                paramStr += "&startdate=" + URLEncoder.encode(DateUtil.displayDateInTimezone(s_gmtTimeZone, startDate), "UTF-8");
             }
             if (endData != null)
             {
-                paramStr += "&endata=" + DateUtil.getDateDisplayString(s_gmtTimeZone, endData);
+                paramStr += "&endata=" + URLEncoder.encode(DateUtil.displayDateInTimezone(s_gmtTimeZone, endData), "UTF-8");
             }
-            return sendApacheGet(paramStr);
+            return (JSONArray)sendApacheGet(paramStr).get("event");
         }
         catch(Exception ex)
         {

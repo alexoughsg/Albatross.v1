@@ -5,6 +5,9 @@ import com.amazonaws.util.json.JSONObject;
 import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.log4j.Logger;
 
+import java.util.Date;
+import java.util.StringTokenizer;
+
 public class BaseService {
 
     private static final Logger s_logger = Logger.getLogger(BaseService.class);
@@ -27,29 +30,44 @@ public class BaseService {
         return null;
     }
 
-    protected String getAttrValue(JSONObject obj, String attrName) throws Exception
+    protected String arrangeDomainPath(String domainPath)
+    {
+        // In 'createDomainResponse' of server.com.cloud.api.ApiResponseHelper as below,
+        // the domain path is changed, so we need to revert back what is same style with what returns domainVO.getPath()
+        //  StringBuilder domainPath = new StringBuilder("ROOT");
+        //  (domainPath.append(domain.getPath())).deleteCharAt(domainPath.length() - 1);
+
+        domainPath = domainPath.replace("ROOT", "");
+        if (domainPath.endsWith("/"))   return domainPath;
+
+        return domainPath + "/";
+    }
+
+    protected String getAttrValue(JSONObject obj, String attrName)
     {
         try
         {
-            return (String)obj.get(attrName);
+            return obj.getString(attrName);
         }
         catch(Exception ex)
         {
             s_logger.info("Failed to get value of [" + attrName + "] : " + obj);
-            throw new Exception("Failed to find attr value for " + attrName);
+            //throw new Exception("Failed to find attr value for " + attrName);
+            return null;
         }
     }
 
-    protected JSONArray getJSONArray(String attrName, JSONObject jsonObject) throws Exception
+    protected JSONArray getJSONArray(String attrName, JSONObject jsonObject)
     {
         try
         {
-            return (JSONArray)jsonObject.get(attrName);
+            return jsonObject.getJSONArray(attrName);
         }
         catch(Exception ex)
         {
             s_logger.info("Failed to find json array for " + attrName);
-            throw new Exception("Failed to find json array for " + attrName);
+            //throw new Exception("Failed to find json array for " + attrName);
+            return null;
         }
     }
 
@@ -57,7 +75,7 @@ public class BaseService {
     {
         try
         {
-            return (String)jsonObject.get("errortext");
+            return jsonObject.getString("errortext");
         }
         catch(Exception ex)
         {
@@ -69,18 +87,23 @@ public class BaseService {
     {
         for(int index = 0; index < jsonArray.length(); index++)
         {
-            JSONObject obj = (JSONObject)jsonArray.get(index);
+            JSONObject obj = jsonArray.getJSONObject(index);
 
             int aIndex = 0;
             for(; aIndex < attrNames.length; aIndex++)
             {
-                if(!obj.get(attrNames[aIndex]).equals(attrValues[aIndex]))
+                String value = getAttrValue(obj, attrNames[aIndex]);
+                if (attrNames[aIndex].equals("path"))
+                {
+                    value = arrangeDomainPath(value);
+                }
+                if(!value.equals(attrValues[aIndex]))
                 {
                     break;
                 }
             }
 
-            if (aIndex == attrNames.length)  return (JSONObject)jsonArray.get(index);
+            if (aIndex == attrNames.length)  return jsonArray.getJSONObject(index);
         }
 
         s_logger.error("Failed to find json for " + attrNames + ", " + attrValues);
@@ -113,10 +136,10 @@ public class BaseService {
             Thread.sleep(waitSeconds * 1000);
             resJson = getInterface().queryAsyncJob(jobId, projectId);
             s_logger.info("res = " + resJson);
-            jobStatus = (Integer)resJson.get("jobstatus");
+            jobStatus = resJson.getInt("jobstatus");
         }
 
-        JSONObject jobResult = (JSONObject)resJson.get("jobresult");
+        JSONObject jobResult = resJson.getJSONObject("jobresult");
         String errorText = getErrorText(jobResult);
         if (errorText != null)
         {
@@ -125,5 +148,60 @@ public class BaseService {
         }
 
         return jobResult;
+    }
+
+    protected JSONArray listEvents(String type, String keyword, Date startDate, Date endData) throws Exception
+    {
+        BaseInterface apiInterface = new BaseInterface(this.url);
+        try
+        {
+            apiInterface.login(this.userName, this.password);
+
+            JSONArray eventArray = apiInterface.listEvents(type, keyword, startDate, endData);
+            s_logger.info("Successfully retrieved events with type[" + type + "], keyword[" + keyword + "], startDate[" + startDate + "], endDate[" + endData + "] in host[" + this.hostName + "]");
+            return eventArray;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to retrieve events with type[" + type + "], keyword[" + keyword + "], startDate[" + startDate + "], endDate[" + endData + "] in host[" + this.hostName + "]", ex);
+            throw ex;
+        }
+        finally {
+            apiInterface.logout();
+        }
+    }
+
+    protected JSONObject parseEventDescription(JSONObject eventJson)
+    {
+        JSONObject jsonObject = new JSONObject();
+
+        String description = "";
+        try
+        {
+            description = eventJson.getString("description");
+
+        }
+        catch(Exception ex)
+        {
+            return jsonObject;
+        }
+
+        StringTokenizer tz = new StringTokenizer(description, ".,");
+        while(tz.hasMoreTokens())
+        {
+            try
+            {
+                String token = tz.nextToken();
+                String[] splitted = token.split(":");
+                if (splitted.length != 2)   continue;
+                jsonObject.put(splitted[0].trim(), splitted[1].trim());
+            }
+            catch(Exception ex)
+            {
+                continue;
+            }
+        }
+
+        return jsonObject;
     }
 }

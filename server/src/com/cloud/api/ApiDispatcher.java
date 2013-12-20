@@ -407,13 +407,21 @@ public class ApiDispatcher {
                     // Do the date messaging for ListEventsCmd only
                     if (cmdObj instanceof ListEventsCmd || cmdObj instanceof DeleteEventsCmd || cmdObj instanceof ArchiveEventsCmd ||
                         cmdObj instanceof ArchiveAlertsCmd || cmdObj instanceof DeleteAlertsCmd) {
+                        boolean isObjInTZDateFormat = isObjInTZDateFormat(paramObj.toString());
                         boolean isObjInNewDateFormat = isObjInNewDateFormat(paramObj.toString());
-                        if (isObjInNewDateFormat) {
+                        if (isObjInTZDateFormat) {
+                            DateFormat newFormat = BaseCmd.TZ_INPUT_FORMAT;
+                            synchronized (newFormat) {
+                                field.set(cmdObj, newFormat.parse(paramObj.toString()));
+                            }
+                        }
+                        else if (isObjInNewDateFormat) {
                             DateFormat newFormat = BaseCmd.NEW_INPUT_FORMAT;
                             synchronized (newFormat) {
                                 field.set(cmdObj, newFormat.parse(paramObj.toString()));
                             }
-                        } else {
+                        }
+                        else {
                             DateFormat format = BaseCmd.INPUT_FORMAT;
                             synchronized (format) {
                                 Date date = format.parse(paramObj.toString());
@@ -514,6 +522,11 @@ public class ApiDispatcher {
 
     private static boolean isObjInNewDateFormat(String string) {
         Matcher matcher = BaseCmd.newInputDateFormat.matcher(string);
+        return matcher.matches();
+    }
+
+    private static boolean isObjInTZDateFormat(String string) {
+        Matcher matcher = BaseCmd.tzInputDateFormat.matcher(string);
         return matcher.matches();
     }
 

@@ -46,6 +46,8 @@ public interface UserAccount extends InternalIdentity {
 
     Date getRemoved();
 
+    Date getModified();
+
     String getAccountName();
 
     short getType();

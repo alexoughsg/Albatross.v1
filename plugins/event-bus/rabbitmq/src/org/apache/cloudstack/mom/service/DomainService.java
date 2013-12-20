@@ -3,9 +3,12 @@ package org.apache.cloudstack.mom.service;
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
+import com.cloud.utils.DateUtil;
 import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.cloudstack.mom.api_interface.DomainInterface;
 import org.apache.log4j.Logger;
+
+import java.util.Date;
 
 public class DomainService extends BaseService {
 
@@ -16,6 +19,20 @@ public class DomainService extends BaseService {
     {
         super(hostName, userName, password);
         this.apiInterface = null;
+    }
+
+    private String getParentPath(String domainPath)
+    {
+        if (domainPath.equals("/"))   return null;
+
+        String[] tokenizedPath = domainPath.split("/");
+        StringBuilder parentPath = new StringBuilder();
+        for (int idx = 0; idx < tokenizedPath.length-1; idx++)
+        {
+            parentPath.append(tokenizedPath[idx]);
+            parentPath.append("/");
+        }
+        return parentPath.toString();
     }
 
     @Override
@@ -38,21 +55,21 @@ public class DomainService extends BaseService {
         }
     }
 
-    public JSONObject findByName(String domainName)
+    protected JSONObject findByPath(String domainPath)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
         {
             this.apiInterface.login(this.userName, this.password);
-            String[] attrNames = {"name"};
-            String[] attrValues = {domainName};
+            String[] attrNames = {"path"};
+            String[] attrValues = {domainPath};
             JSONObject domainJson = find(attrNames, attrValues);
-            s_logger.info("Successfully found domain by name[" + domainName + "]");
+            s_logger.info("Successfully found domain by path[" + domainPath + "]");
             return domainJson;
         }
         catch(Exception ex)
         {
-            s_logger.error("Failed to find domain by name[" + domainName + "]", ex);
+            s_logger.error("Failed to find domain by path[" + domainPath + "]", ex);
             return null;
         }
         finally {
@@ -60,13 +77,33 @@ public class DomainService extends BaseService {
         }
     }
 
-    public boolean create(Domain domain, Domain parentDomain, String oldDomainName)
+    public JSONArray list()
     {
-        JSONObject resJson = create(domain.getName(), (parentDomain == null) ? null : parentDomain.getName(), domain.getNetworkDomain());
+        this.apiInterface = new DomainInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+            JSONArray domainArray = this.apiInterface.listDomains(true);
+            s_logger.info("Successfully found domain list");
+            return domainArray;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to find domain list", ex);
+            return new JSONArray();
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
+    public boolean create(Domain domain, String oldDomainName)
+    {
+        JSONObject resJson = create(domain.getName(), domain.getPath(), domain.getNetworkDomain());
         return (resJson != null);
     }
 
-    public JSONObject create(String domainName, String parentDomainName, String networkDomain)
+    protected JSONObject create(String domainName, String domainPath, String networkDomain)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -74,8 +111,8 @@ public class DomainService extends BaseService {
             this.apiInterface.login(this.userName, this.password);
 
             // check if the domain already exists
-            String[] attrNames = {"name", "parentdomainname"};
-            String[] attrValues = {domainName, parentDomainName};
+            String[] attrNames = {"name", "path"};
+            String[] attrValues = {domainName, domainPath};
             JSONObject domainJson = find(attrNames, attrValues);
             if (domainJson != null)
             {
@@ -85,17 +122,18 @@ public class DomainService extends BaseService {
 
             // find the parent domain id
             String parentDomainId = null;
-            if (parentDomainName != null)
+            String parentDomainPath = getParentPath(domainPath);
+            if (parentDomainPath != null)
             {
-                String[] pAttrNames = {"name"};
-                String[] pAttrValues = {parentDomainName};
+                String[] pAttrNames = {"path"};
+                String[] pAttrValues = {parentDomainPath};
                 JSONObject pDomainJson = find(pAttrNames, pAttrValues);
                 if (pDomainJson == null)
                 {
-                    s_logger.info("cannot find parent domain[" + parentDomainName + "] in host[" + this.hostName + "]");
+                    s_logger.info("cannot find parent domain[" + parentDomainPath + "] in host[" + this.hostName + "]");
                     return null;
                 }
-                parentDomainId = (String)pDomainJson.get("id");
+                parentDomainId = getAttrValue(pDomainJson, "id");
             }
 
             domainJson = this.apiInterface.createDomain(domainName, parentDomainId, null, networkDomain);
@@ -112,12 +150,12 @@ public class DomainService extends BaseService {
         }
     }
 
-    public boolean delete(Domain domain, Domain parentDomain, String oldDomainName)
+    public boolean delete(Domain domain, String oldDomainName)
     {
-        return delete(domain.getName(), (parentDomain == null) ? null : parentDomain.getName());
+        return delete(domain.getName(), domain.getPath());
     }
 
-    public boolean delete(String domainName, String parentDomainName)
+    protected boolean delete(String domainName, String domainPath)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -125,8 +163,8 @@ public class DomainService extends BaseService {
             this.apiInterface.login(this.userName, this.password);
 
             // check if the domain already exists
-            String[] attrNames = {"name", "parentdomainname"};
-            String[] attrValues = {domainName, parentDomainName};
+            String[] attrNames = {"name", "path"};
+            String[] attrValues = {domainName, domainPath};
             JSONObject domainJson = find(attrNames, attrValues);
             if (domainJson == null)
             {
@@ -150,20 +188,20 @@ public class DomainService extends BaseService {
         }
     }
 
-    public boolean update(Domain domain, Domain parentDomain, String oldDomainName)
+    public boolean update(Domain domain, String oldDomainName)
     {
-        return update(oldDomainName, domain.getName(), (parentDomain == null) ? null : parentDomain.getName(), domain.getNetworkDomain());
+        return update(oldDomainName, domain.getName(), domain.getPath(), domain.getNetworkDomain());
     }
 
-    public boolean update(String domainName, String newName, String parentDomainName, String networkDomain)
+    protected boolean update(String domainName, String newName, String domainPath, String networkDomain)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
         {
             this.apiInterface.login(this.userName, this.password);
 
-            String[] attrNames = {"name", "parentdomainname"};
-            String[] attrValues = {domainName, parentDomainName};
+            String[] attrNames = {"name", "path"};
+            String[] attrValues = {domainName, domainPath};
             JSONObject domainJson = find(attrNames, attrValues);
             if (domainJson == null)
             {
@@ -184,5 +222,42 @@ public class DomainService extends BaseService {
         finally {
             this.apiInterface.logout();
         }
+    }
+
+    public Date isRemoved(String domainName, String domainPath, Date created)
+    {
+        JSONArray eventList = null;
+        try
+        {
+            eventList = listEvents("DOMAIN.DELETE", "completed", created, null);
+        }
+        catch(Exception ex)
+        {
+            return null;
+        }
+        if (eventList == null || eventList.length() == 0)    return null;
+
+        for (int idx = 0; idx < eventList.length(); idx++)
+        {
+            try
+            {
+                JSONObject jsonObject = parseEventDescription(eventList.getJSONObject(idx));
+                String eventDomainName = getAttrValue(jsonObject, "Domain Name");
+                String eventDomainPath = getAttrValue(jsonObject, "Domain Path");
+
+                if (eventDomainName == null)    continue;
+                if (!eventDomainName.equals(domainName))    continue;
+                if (eventDomainPath == null)  continue;
+                if (!eventDomainPath.equals(domainPath))    continue;
+
+                return DateUtil.parseTZDateString(getAttrValue(jsonObject, "created"));
+            }
+            catch(Exception ex)
+            {
+                return null;
+            }
+        }
+
+        return null;
     }
 }

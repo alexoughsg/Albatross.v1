@@ -50,6 +50,10 @@ public interface Account extends ControlledEntity, InternalIdentity, Identity {
 
     public State getState();
 
+    public Date getCreated();
+
+    public Date getModified();
+
     public Date getRemoved();
 
     public String getNetworkDomain();

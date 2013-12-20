@@ -25,6 +25,8 @@ import org.apache.cloudstack.api.EntityReference;
 import com.cloud.domain.Domain;
 import com.cloud.serializer.Param;
 
+import java.util.Date;
+
 @EntityReference(value = Domain.class)
 public class DomainResponse extends BaseResponse {
     @SerializedName(ApiConstants.ID)
@@ -58,6 +60,14 @@ public class DomainResponse extends BaseResponse {
     @SerializedName(ApiConstants.PATH)
     @Param(description = "the path of the domain")
     private String path;
+
+    @SerializedName(ApiConstants.CREATED)
+    @Param(description = "the timestamp when this domain was created")
+    private Date created;
+
+    @SerializedName(ApiConstants.MODIFIED)
+    @Param(description = "the timestamp when this domain was last modified")
+    private Date modified;
 
     public String getId() {
         return this.id;
@@ -119,4 +129,11 @@ public class DomainResponse extends BaseResponse {
         this.path = path;
     }
 
+    public Date getCreated() { return created; }
+
+    public void setCreated(Date created) { this.created = created; }
+
+    public Date getModified() { return modified; }
+
+    public void setModified(Date modified) { this.modified = modified; }
 }

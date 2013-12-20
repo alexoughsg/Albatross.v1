@@ -221,10 +221,12 @@ public class DomainVO implements Domain {
         this.uuid = uuid;
     }
 
+    @Override
     public Date getCreated() { return created; }
 
     public void setCreated(Date created) { this.created = created; }
 
+    @Override
     public Date getModified() { return modified; }
 
     public void setModified(Date modified) { this.modified = modified; }

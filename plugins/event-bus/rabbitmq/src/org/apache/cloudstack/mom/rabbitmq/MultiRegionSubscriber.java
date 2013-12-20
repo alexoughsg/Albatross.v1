@@ -32,6 +32,7 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     protected UserDao userDao;
 
     protected String[][] regions = {
+            {"localhost", "admin", "password"},
             //{"10.88.90.82", "admin", "password"},
             //{"207.19.99.100", "admin", "password"}
     };

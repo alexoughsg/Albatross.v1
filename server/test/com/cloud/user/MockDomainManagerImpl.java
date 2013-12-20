@@ -157,4 +157,5 @@ public class MockDomainManagerImpl extends ManagerBase implements DomainManager,
         // TODO Auto-generated method stub
         return null;
     }
+
 }

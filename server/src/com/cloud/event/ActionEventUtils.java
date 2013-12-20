@@ -268,14 +268,7 @@ public class ActionEventUtils {
         {
             Domain domain = s_domainDao.findByUuidIncludingRemoved(entityUuid);
             Domain parentDomain = s_domainDao.findByIdIncludingRemoved(domain.getParent());
-            if (eventType.endsWith(".CREATE"))
-            {
-                description += ", Parent Domain Name:" + parentDomain.getName();
-            }
-            else
-            {
-                description += ", Domain Name:" + domain.getName() + ", Parent Domain Name:" + parentDomain.getName();
-            }
+            description += ", Domain Path:" + domain.getPath();
         }
         else if (eventType.startsWith("ACCOUNT."))
         {
@@ -283,11 +276,11 @@ public class ActionEventUtils {
             Domain domain = s_domainDao.findById(account.getDomainId());
             if (eventType.endsWith(".CREATE"))
             {
-                description += ", Domain Name:" + domain.getName();
+                description += ", Domain Path:" + domain.getPath();
             }
             else
             {
-                description += ", Account Name:" + account.getAccountName() + ", Domain Name:" + domain.getName();
+                description += ", Account Name:" + account.getAccountName() + ", Domain Path:" + domain.getPath();
             }
         }
         else if (eventType.startsWith("USER."))
@@ -297,11 +290,11 @@ public class ActionEventUtils {
             Domain domain = s_domainDao.findById(account.getDomainId());
             if (eventType.endsWith(".CREATE"))
             {
-                description += ", Account Name:" + account.getAccountName() + ", Domain Name:" + domain.getName();
+                description += ", Account Name:" + account.getAccountName() + ", Domain Path:" + domain.getPath();
             }
             else
             {
-                description += ", User Name:" + user.getUsername() + ", Account Name:" + account.getAccountName() + ", Domain Name:" + domain.getName();
+                description += ", User Name:" + user.getUsername() + ", Account Name:" + account.getAccountName() + ", Domain Path:" + domain.getPath();
             }
         }
 

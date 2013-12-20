@@ -71,6 +71,9 @@ public class UserAccountJoinVO extends BaseViewVO implements InternalIdentity, I
     @Column(name = GenericDao.REMOVED_COLUMN)
     private Date removed;
 
+    @Column(name = GenericDao.MODIFIED_COLUMN)
+    private Date modified;
+
     @Column(name = "timezone")
     private String timezone;
 
@@ -202,6 +205,10 @@ public class UserAccountJoinVO extends BaseViewVO implements InternalIdentity, I
 
     public Date getRemoved() {
         return removed;
+    }
+
+    public Date getModified() {
+        return modified;
     }
 
     public String getTimezone() {
