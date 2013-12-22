@@ -104,6 +104,12 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details)
+    {
+        return false;
+    }
+
+    @Override
     public Account getSystemAccount() {
         return new AccountVO();
     }

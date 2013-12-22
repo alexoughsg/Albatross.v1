@@ -47,4 +47,6 @@ public interface DomainManager extends DomainService {
      * @return Domain object if the command succeeded
      */
     Domain updateDomain(UpdateDomainCmd cmd);
+
+    boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain);
 }

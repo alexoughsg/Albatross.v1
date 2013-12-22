@@ -166,6 +166,8 @@ public class AccountVO implements Account {
         return removed;
     }
 
+    public void setRemoved(Date removed) { this.removed = removed; }
+
     @Override
     public long getAccountId() {
         return id;

@@ -6,9 +6,10 @@ import com.cloud.configuration.ResourceLimit;
 import com.cloud.configuration.dao.ResourceCountDao;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
+import com.cloud.user.DomainManager;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
-import com.cloud.utils.db.TransactionCallbackNoReturn;
+import com.cloud.utils.db.TransactionCallback;
 import com.cloud.utils.db.TransactionStatus;
 import org.apache.log4j.Logger;
 
@@ -20,13 +21,15 @@ public class DomainFullScanner extends FullScanner {
 
     private static final Logger s_logger = Logger.getLogger(DomainFullScanner.class);
 
-    private DomainDao domainDao;
+    protected DomainDao domainDao;
     private ResourceCountDao resourceCountDao;
+    private DomainManager domainManager;
 
     public DomainFullScanner()
     {
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.resourceCountDao = ComponentContext.getComponent(ResourceCountDao.class);
+        this.domainManager = ComponentContext.getComponent(DomainManager.class);
     }
 
     // this is from com.cloud.user.DomainManagerImpl
@@ -115,7 +118,7 @@ public class DomainFullScanner extends FullScanner {
     }
 
     @Override
-    protected void create(JSONObject jsonObject, final Date created)
+    protected Object create(JSONObject jsonObject, final Date created)
     {
         // find parent domain id from the domain path
         String domainPath = getAttrValueInJson(jsonObject, "path");
@@ -135,14 +138,12 @@ public class DomainFullScanner extends FullScanner {
 
 
 
-
-        Transaction.execute(new TransactionCallbackNoReturn()
-        {
+        return Transaction.execute(new TransactionCallback<DomainVO>() {
             @Override
-            public void doInTransactionWithoutResult(TransactionStatus status)
-            {
+            public DomainVO doInTransaction(TransactionStatus status) {
                 DomainVO domain = domainDao.create(new DomainVO(domainName, ownerId, parentId, networkDomain, domainUUID, created));
                 resourceCountDao.createResourceCounts(domain.getId(), ResourceLimit.ResourceOwnerType.Domain);
+                return domain;
             }
         });
 
@@ -151,7 +152,7 @@ public class DomainFullScanner extends FullScanner {
     @Override
     protected void update(Object object, final JSONObject jsonObject, final Date modified)
     {
-        final DomainVO domain = (DomainVO)object;
+        /*final DomainVO domain = (DomainVO)object;
         final Long domainId = domain.getId();
 
         Transaction.execute(new TransactionCallbackNoReturn()
@@ -174,14 +175,25 @@ public class DomainFullScanner extends FullScanner {
                 domain.setModified(modified);
                 domainDao.update(domainId, domain);
             }
-        });
+        });*/
+
+        DomainVO domain = (DomainVO)object;
+        domain.setModified(modified);
+
+        String newDomainName = getAttrValueInJson(jsonObject, "name");
+        String newNetworkDomain = getAttrValueInJson(jsonObject, "networkdomain");
+        domainManager.updateDomain(domain, newDomainName, newNetworkDomain);
     }
 
     @Override
     protected void remove(Object object, Date removed)
     {
         DomainVO domain = (DomainVO)object;
-        domainDao.remove(domain.getId(), removed);
+        //domainDao.remove(domain.getId(), removed);
+
+        boolean cleanup = false;
+        domain.setRemoved(removed);
+        domainManager.deleteDomain(domain, cleanup);
     }
 
     protected Date isRemoteCreated(JSONObject remoteObject)

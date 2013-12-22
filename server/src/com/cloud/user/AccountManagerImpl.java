@@ -1419,14 +1419,14 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         String accountName = cmd.getAccountName();
         String newAccountName = cmd.getNewName();
         String networkDomain = cmd.getNetworkDomain();
-        final Map<String, String> details = cmd.getDetails();
+        Map<String, String> details = cmd.getDetails();
 
         boolean success = false;
-        Account account = null;
+        AccountVO account = null;
         if (accountId != null) {
             account = _accountDao.findById(accountId);
         } else {
-            account = _accountDao.findEnabledAccount(accountName, domainId);
+            account = (AccountVO)_accountDao.findEnabledAccount(accountName, domainId);
         }
 
         // Check if account exists
@@ -1442,6 +1442,27 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
         // Check if user performing the action is allowed to modify this account
         checkAccess(CallContext.current().getCallingAccount(), _domainMgr.getDomain(account.getDomainId()));
+
+        success = updateAccount(account, newAccountName, networkDomain, details);
+        if (success) {
+            CallContext.current().putContextParameter(Account.class, account.getUuid());
+            CallContext.current().putContextParameter(account.getUuid(), accountName);  // store the old name for multi-region support
+            return _accountDao.findById(account.getId());
+        } else {
+            throw new CloudRuntimeException("Unable to update account by accountId: " + accountId + " OR by name: " + accountName + " in domain " + domainId);
+        }
+    }
+
+    @Override
+    @DB
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details) {
+
+        Long accountId = account.getId();
+        Long domainId = account.getDomainId();
+        String accountName = account.getAccountName();
+        String networkDomain = newNetworkDomain;
+
+        boolean success = false;
 
         // check if the given account name is unique in this domain for updating
         Account duplicateAcccount = _accountDao.findActiveAccount(newAccountName, domainId);
@@ -1488,13 +1509,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             }
         });
 
-        if (success) {
-            CallContext.current().putContextParameter(Account.class, account.getUuid());
-            CallContext.current().putContextParameter(account.getUuid(), accountName);  // store the old name for multi-region support
-            return _accountDao.findById(account.getId());
-        } else {
-            throw new CloudRuntimeException("Unable to update account by accountId: " + accountId + " OR by name: " + accountName + " in domain " + domainId);
-        }
+        return success;
     }
 
     @Override

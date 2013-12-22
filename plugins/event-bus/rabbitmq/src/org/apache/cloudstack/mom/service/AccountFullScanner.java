@@ -13,11 +13,12 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.security.SecurityGroupManager;
 import com.cloud.user.Account;
 import com.cloud.user.AccountDetailsDao;
+import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
-import com.cloud.utils.db.TransactionCallbackNoReturn;
+import com.cloud.utils.db.TransactionCallback;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
@@ -34,13 +35,14 @@ public class AccountFullScanner extends FullScanner {
 
     private static final Logger s_logger = Logger.getLogger(AccountFullScanner.class);
 
-    private AccountDao accountDao;
-    private DomainDao domainDao;
+    protected AccountDao accountDao;
+    protected DomainDao domainDao;
     private ResourceCountDao resourceCountDao;
     private AccountDetailsDao accountDetailsDao;
     private SecurityGroupManager networkGroupMgr;
     private VMInstanceDao vmDao;
     private VirtualMachineManager itMgr;
+    private AccountManager accountManager;
 
     public AccountFullScanner()
     {
@@ -51,6 +53,7 @@ public class AccountFullScanner extends FullScanner {
         this.networkGroupMgr = ComponentContext.getComponent(SecurityGroupManager.class);
         this.vmDao = ComponentContext.getComponent(VMInstanceDao.class);
         this.itMgr = ComponentContext.getComponent(VirtualMachineManager.class);
+        this.accountManager = ComponentContext.getComponent(AccountManager.class);
     }
 
     @Override
@@ -133,7 +136,7 @@ public class AccountFullScanner extends FullScanner {
     }
 
     @Override
-    protected void create(JSONObject jsonObject, final Date created)
+    protected Object create(JSONObject jsonObject, final Date created)
     {
         // find domain id
         String domainPath = getAttrValueInJson(jsonObject, "path");
@@ -141,7 +144,7 @@ public class AccountFullScanner extends FullScanner {
         if (domain == null)
         {
             s_logger.error("Failed to create a account because its domain[" + domainPath + "] cannot be found");
-            return;
+            return null;
         }
 
         // find account details
@@ -162,15 +165,15 @@ public class AccountFullScanner extends FullScanner {
         final Map<String, String> accountDetails = details;
         final String accountUUID = UUID.randomUUID().toString();
 
-        Transaction.execute(new TransactionCallbackNoReturn()
+        return Transaction.execute(new TransactionCallback<AccountVO>()
         {
             @Override
-            public void doInTransactionWithoutResult(TransactionStatus status)
+            public AccountVO doInTransaction(TransactionStatus status)
             {
                 AccountVO account = accountDao.persist(new AccountVO(accountName, domainId, networkDomain, accountType, accountUUID, created));
                 if (account == null) {
                     s_logger.error("Failed to create account name " + accountName + " in domain id=" + domainId);
-                    return;
+                    return null;
                 }
 
                 Long accountId = account.getId();
@@ -184,6 +187,8 @@ public class AccountFullScanner extends FullScanner {
 
                 // Create default security group
                 networkGroupMgr.createDefaultSecurityGroup(accountId);
+
+                return account;
             }
         });
     }
@@ -203,13 +208,13 @@ public class AccountFullScanner extends FullScanner {
             details = null;
         }
 
-        final AccountVO acctForUpdate = account;
-        acctForUpdate.setAccountName(getAttrValueInJson(jsonObject, "name"));
-        acctForUpdate.setNetworkDomain(getAttrValueInJson(jsonObject, "networkdomain"));
-        acctForUpdate.setModified(modified);
+        account.setModified(modified);
+
+        String newAccountName = getAttrValueInJson(jsonObject, "name");
+        String newNetworkDomain = getAttrValueInJson(jsonObject, "networkdomain");
         final Map<String, String> accountDetails = details;
 
-        Transaction.execute(new TransactionCallbackNoReturn()
+        /*Transaction.execute(new TransactionCallbackNoReturn()
         {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status)
@@ -221,7 +226,9 @@ public class AccountFullScanner extends FullScanner {
                     accountDetailsDao.update(acctForUpdate.getId(), accountDetails);
                 }
             }
-        });
+        });*/
+
+        accountManager.updateAccount(account, newAccountName, newNetworkDomain, details);
     }
 
     @Override
@@ -264,7 +271,11 @@ public class AccountFullScanner extends FullScanner {
     protected void remove(Object object, Date removed)
     {
         AccountVO account = (AccountVO)object;
-        accountDao.remove(account.getId(), removed);
+        account.setRemoved(removed);
+
+        long callerUserId = 0;
+        Account caller = null;
+        accountManager.deleteAccount(account, callerUserId, caller);
     }
 
     @Override

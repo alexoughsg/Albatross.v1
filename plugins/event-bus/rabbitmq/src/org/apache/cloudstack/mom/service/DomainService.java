@@ -21,6 +21,23 @@ public class DomainService extends BaseService {
         this.apiInterface = null;
     }
 
+    private boolean isEqual(JSONObject domainJson, String domainName, String networkDomain)
+    {
+        String jsonDomainName = getAttrValue(domainJson, "name");
+        String jsonNetworkDomain = getAttrValue(domainJson, "networkdomain");
+
+        if(!jsonDomainName.equals(domainName)) return false;
+
+        if (jsonNetworkDomain != null || networkDomain != null)
+        {
+            if (jsonNetworkDomain == null && networkDomain != null) return false;
+            if (jsonNetworkDomain != null && networkDomain == null) return false;
+            if(!jsonNetworkDomain.equals(networkDomain))    return false;
+        }
+
+        return true;
+    }
+
     private String getParentPath(String domainPath)
     {
         if (domainPath.equals("/"))   return null;
@@ -206,6 +223,12 @@ public class DomainService extends BaseService {
             if (domainJson == null)
             {
                 s_logger.info("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
+                return false;
+            }
+
+            if(isEqual(domainJson, newName, networkDomain))
+            {
+                s_logger.info("domain[" + newName + "] has same attrs in host[" + this.hostName + "]");
                 return false;
             }
 

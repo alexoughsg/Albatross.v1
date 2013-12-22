@@ -23,6 +23,48 @@ public class UserService extends BaseService {
         this.apiInterface = null;
     }
 
+    private boolean isEqual(JSONObject userJson, String userName, String email, String firstName, String lastName, String password, String timezone, String apiKey, String secretKey)
+    {
+        String jsonUserName = getAttrValue(userJson, "username");
+        String jsonEmail = getAttrValue(userJson, "email");
+        String jsonFirstName = getAttrValue(userJson, "firstname");
+        String jsonLastName = getAttrValue(userJson, "lastname");
+        String jsonApiKey = getAttrValue(userJson, "apikey");
+        String jsonSecretKey = getAttrValue(userJson, "secretkey");
+        String jsonTimezone = getAttrValue(userJson, "timezone");
+        String jsonPassword = getAttrValue(userJson, "password");
+
+        if(!jsonUserName.equals(userName))    return false;
+        if(!jsonEmail.equals(email))    return false;
+        if(!jsonFirstName.equals(firstName))    return false;
+        if(!jsonLastName.equals(lastName))    return false;
+
+        if(jsonApiKey != null || apiKey != null)
+        {
+            if(jsonApiKey == null && apiKey != null)  return false;
+            if(jsonApiKey != null && apiKey == null)  return false;
+            if(!jsonApiKey.equals(apiKey))    return false;
+        }
+
+        if(jsonSecretKey != null || secretKey != null)
+        {
+            if(jsonSecretKey == null && secretKey != null)    return false;
+            if(jsonSecretKey != null && secretKey == null)    return false;
+            if(!jsonSecretKey.equals(secretKey))    return false;
+        }
+
+        if(jsonTimezone != null || timezone != null)
+        {
+            if(jsonTimezone == null && timezone != null)  return false;
+            if(jsonTimezone != null && timezone == null)  return false;
+            if(!jsonTimezone.equals(timezone))    return false;
+        }
+
+        //if(!jsonPassword.equals(password))    return false;
+
+        return true;
+    }
+
     @Override
     protected BaseInterface getInterface()
     {
@@ -212,6 +254,13 @@ public class UserService extends BaseService {
                 return false;
             }
 
+            String state = getAttrValue(userJson, "state");
+            if (state.equals(Account.ACCOUNT_STATE_ENABLED))
+            {
+                s_logger.info("user[" + userName + "] in account[" + accountName + "] in domain[" + domainPath + "] is already enabled in host[" + this.hostName + "]");
+                return false;
+            }
+
             String id = getAttrValue(userJson, "id");
             this.apiInterface.enableUser(id);
             s_logger.info("Successfully enabled user[" + userName + "] in account[" + accountName + "], domain[" + domainPath + "] in host[" + this.hostName + "]");
@@ -245,6 +294,13 @@ public class UserService extends BaseService {
             if (userJson == null)
             {
                 s_logger.info("user[" + userName + "] in account[" + accountName + "], domain[" + domainPath + "]  does not exists in host[" + this.hostName + "]");
+                return false;
+            }
+
+            String state = getAttrValue(userJson, "state");
+            if (state.equals(Account.ACCOUNT_STATE_DISABLED))
+            {
+                s_logger.info("user[" + userName + "] in account[" + accountName + "] in domain[" + domainPath + "] is already disabled in host[" + this.hostName + "]");
                 return false;
             }
 
@@ -285,6 +341,13 @@ public class UserService extends BaseService {
                 return false;
             }
 
+            String state = getAttrValue(userJson, "state");
+            if (state.equals(Account.ACCOUNT_STATE_LOCKED))
+            {
+                s_logger.info("user[" + userName + "] in account[" + accountName + "] in domain[" + domainPath + "] is already locked in host[" + this.hostName + "]");
+                return false;
+            }
+
             String id = getAttrValue(userJson, "id");
             this.apiInterface.disableUser(id);
             s_logger.info("Successfully disabled user[" + userName + "] in account[" + accountName + "], domain[" + domainPath + "] in host[" + this.hostName + "]");
@@ -318,6 +381,12 @@ public class UserService extends BaseService {
             if (userJson == null)
             {
                 s_logger.info("user[" + userName + "] in account[" + accountName + "], domain[" + domainPath + "]  does not exists in host[" + this.hostName + "]");
+                return false;
+            }
+
+            if(isEqual(userJson, newName, email, firstName, lastName, password, timezone, userAPIKey, userSecretKey))
+            {
+                s_logger.info("account[" + newName + "] has same attrs in host[" + this.hostName + "]");
                 return false;
             }
 

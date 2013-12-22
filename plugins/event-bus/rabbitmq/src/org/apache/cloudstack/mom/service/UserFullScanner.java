@@ -18,11 +18,13 @@ import java.util.UUID;
 
 public class UserFullScanner extends FullScanner {
 
+    private static final String TEMP_PASSWORD = "temppassword";
+
     private static final Logger s_logger = Logger.getLogger(UserFullScanner.class);
 
-    private UserDao userDao;
-    private AccountDao accountDao;
-    private DomainDao domainDao;
+    protected UserDao userDao;
+    protected AccountDao accountDao;
+    protected DomainDao domainDao;
 
     public UserFullScanner()
     {
@@ -85,7 +87,7 @@ public class UserFullScanner extends FullScanner {
     }
 
     @Override
-    protected void create(JSONObject jsonObject, Date created)
+    protected Object create(JSONObject jsonObject, Date created)
     {
         try
         {
@@ -98,7 +100,7 @@ public class UserFullScanner extends FullScanner {
             if (domain == null)
             {
                 s_logger.error("Failed to create a user because its domain[" + domainPath + "] cannot be found");
-                return;
+                return null;
             }
 
             // find account where this user should belong
@@ -114,23 +116,27 @@ public class UserFullScanner extends FullScanner {
             if (account == null)
             {
                 s_logger.error("Failed to create a user because its account[" + accountName + "] cannot be found");
-                return;
+                return null;
             }
 
             long accountId = account.getId();
             String userName = getAttrValueInJson(jsonObject, "username");
-            String password = null;
+            //String password = getAttrValueInJson(jsonObject, "passowrd");
+            String password = TEMP_PASSWORD;
             String firstName = getAttrValueInJson(jsonObject, "firstname");
             String lastName = getAttrValueInJson(jsonObject, "lastname");
             String email = getAttrValueInJson(jsonObject, "email");
             String timezone = getAttrValueInJson(jsonObject, "timezone");
-            String userUUID = UUID.randomUUID().toString();;
-            userDao.persist(new UserVO(accountId, userName, password, firstName, lastName, email, timezone, userUUID, created));
-            s_logger.error("Successfully created a user[" + userName + "]");
+            String userUUID = UUID.randomUUID().toString();
+            UserVO user = new UserVO(accountId, userName, password, firstName, lastName, email, timezone, userUUID, created);
+            userDao.persist(user);
+            s_logger.info("Successfully created a user[" + userName + "]");
+            return user;
         }
         catch(Exception ex)
         {
             s_logger.error("Failed to create a user", ex);
+            return null;
         }
     }
 

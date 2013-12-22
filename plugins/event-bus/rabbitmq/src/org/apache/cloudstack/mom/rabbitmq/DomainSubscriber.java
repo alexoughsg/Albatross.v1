@@ -1,8 +1,14 @@
 package org.apache.cloudstack.mom.rabbitmq;
 
 import com.cloud.domain.Domain;
+import com.cloud.domain.DomainVO;
+import com.cloud.user.AccountVO;
+import com.cloud.user.UserVO;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.mom.service.DomainService;
+import org.apache.cloudstack.mom.simulator.AccountLocalGenerator;
+import org.apache.cloudstack.mom.simulator.DomainLocalGenerator;
+import org.apache.cloudstack.mom.simulator.UserLocalGenerator;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Method;
@@ -36,6 +42,29 @@ public class DomainSubscriber extends MultiRegionSubscriber {
 
         UserFullScanner userScanner = new UserFullScanner();
         userScanner.refreshAll(remoteRegions);*/
+
+        DomainLocalGenerator dgen = new DomainLocalGenerator();
+        DomainVO domain = dgen.create();
+        dgen.update(domain);
+        //dgen.remove(domain);
+
+        AccountLocalGenerator agen = new AccountLocalGenerator();
+        AccountVO account = agen.create();
+        agen.update(account);
+        agen.lock(account);
+        agen.enable(account);
+        agen.disable(account);
+        agen.enable(account);
+        //agen.remove(account);
+
+        UserLocalGenerator ugen = new UserLocalGenerator();
+        UserVO user = ugen.create();
+        ugen.update(user);
+        ugen.lock(user);
+        ugen.enable(user);
+        ugen.disable(user);
+        ugen.enable(user);
+        //ugen.remove(user);
 
 
 

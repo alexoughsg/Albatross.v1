@@ -106,6 +106,7 @@ public class DomainVO implements Domain {
         this.state = Domain.State.Active;
         this.networkDomain = networkDomain;
         this.uuid = uuid;
+        this.created = created;
         if (created != null)    this.modified = created;
     }
 
@@ -150,6 +151,8 @@ public class DomainVO implements Domain {
     public Date getRemoved() {
         return removed;
     }
+
+    public void setRemoved(Date removed) { this.removed = removed; }
 
     @Override
     public String getPath() {

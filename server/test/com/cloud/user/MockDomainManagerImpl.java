@@ -153,6 +153,12 @@ public class MockDomainManagerImpl extends ManagerBase implements DomainManager,
     }
 
     @Override
+    public boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain)
+    {
+        return false;
+    }
+
+    @Override
     public Domain createDomain(String name, Long parentId, Long ownerId, String networkDomain, String domainUUID) {
         // TODO Auto-generated method stub
         return null;

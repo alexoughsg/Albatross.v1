@@ -23,6 +23,17 @@ public class AccountService extends BaseService {
         this.apiInterface = null;
     }
 
+    private boolean isEqual(JSONObject accountJson, String accountName, String networkDomain)
+    {
+        String jsonAccountName = getAttrValue(accountJson, "name");
+        String jsonNetworkDomain = getAttrValue(accountJson, "networkdomain");
+
+        if(!jsonAccountName.equals(accountName)) return false;
+        if(!jsonNetworkDomain.equals(networkDomain))    return false;
+
+        return true;
+    }
+
     @Override
     protected BaseInterface getInterface()
     {
@@ -184,6 +195,13 @@ public class AccountService extends BaseService {
                 return false;
             }
 
+            String state = getAttrValue(accountJson, "state");
+            if (state.equals(Account.ACCOUNT_STATE_ENABLED))
+            {
+                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] is already enabled in host[" + this.hostName + "]");
+                return false;
+            }
+
             String id = getAttrValue(accountJson, "id");
             this.apiInterface.enableAccount(id);
             s_logger.info("Successfully enabled account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
@@ -217,6 +235,13 @@ public class AccountService extends BaseService {
             if (accountJson == null)
             {
                 s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
+                return false;
+            }
+
+            String state = getAttrValue(accountJson, "state");
+            if (state.equals(Account.ACCOUNT_STATE_DISABLED))
+            {
+                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] is already disabled in host[" + this.hostName + "]");
                 return false;
             }
 
@@ -257,6 +282,13 @@ public class AccountService extends BaseService {
                 return false;
             }
 
+            String state = getAttrValue(accountJson, "state");
+            if (state.equals(Account.ACCOUNT_STATE_LOCKED))
+            {
+                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] is already locked in host[" + this.hostName + "]");
+                return false;
+            }
+
             String id = getAttrValue(accountJson, "id");
             this.apiInterface.lockAccount(id);
             s_logger.info("Successfully locked account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
@@ -292,6 +324,13 @@ public class AccountService extends BaseService {
                 s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
+
+            if(isEqual(accountJson, newName, networkDomain))
+            {
+                s_logger.info("account[" + newName + "] has same attrs in host[" + this.hostName + "]");
+                return false;
+            }
+
             String id = getAttrValue(accountJson, "id");
 
             // find domain id of the given domain

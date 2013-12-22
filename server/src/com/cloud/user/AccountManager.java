@@ -118,6 +118,8 @@ public interface AccountManager extends AccountService {
      */
     Account updateAccount(UpdateAccountCmd cmd);
 
+    boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details);
+
     /**
      * Disables an account by accountName and domainId
      *
