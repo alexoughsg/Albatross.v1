@@ -207,7 +207,9 @@ public class DomainService extends BaseService {
 
     public boolean update(Domain domain, String oldDomainName)
     {
-        return update(oldDomainName, domain.getName(), domain.getPath(), domain.getNetworkDomain());
+        // replace the new domain path with the old path
+        String domainPath = domain.getPath().replace(domain.getName(), oldDomainName);
+        return update(oldDomainName, domain.getName(), domainPath, domain.getNetworkDomain());
     }
 
     protected boolean update(String domainName, String newName, String domainPath, String networkDomain)
