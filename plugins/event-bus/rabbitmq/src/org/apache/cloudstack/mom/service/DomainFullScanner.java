@@ -32,31 +32,6 @@ public class DomainFullScanner extends FullScanner {
         this.domainManager = ComponentContext.getComponent(DomainManager.class);
     }
 
-    // this is from com.cloud.user.DomainManagerImpl
-    private String getUpdatedDomainPath(String oldPath, String newName)
-    {
-        String[] tokenizedPath = oldPath.split("/");
-        tokenizedPath[tokenizedPath.length - 1] = newName;
-        StringBuilder finalPath = new StringBuilder();
-        for (String token : tokenizedPath) {
-            finalPath.append(token);
-            finalPath.append("/");
-        }
-        return finalPath.toString();
-    }
-
-    // this is from com.cloud.user.DomainManagerImpl
-    private void updateDomainChildren(DomainVO domain, String updatedDomainPrefix)
-    {
-        List<DomainVO> domainChildren = domainDao.findAllChildren(domain.getPath(), domain.getId());
-        // for each child, update the path
-        for (DomainVO dom : domainChildren)
-        {
-            dom.setPath(dom.getPath().replaceFirst(domain.getPath(), updatedDomainPrefix));
-            domainDao.update(dom.getId(), dom);
-        }
-    }
-
     private String getParentPath(String domainPath, String parentDomainName)
     {
         if (parentDomainName == null)   return "/";
@@ -97,13 +72,39 @@ public class DomainFullScanner extends FullScanner {
         }
     }
 
+    private String convertPath(String path)
+    {
+        if (path.equals("ROOT"))
+        {
+            path = "/";
+        }
+        else
+        {
+            path = path.replace("ROOT/", "/");
+        }
+        return path;
+    }
+
     @Override
     protected DomainVO find(JSONObject jsonObject, List localList)
     {
+        /*String remotePath = convertPath(getAttrValueInJson(jsonObject, "path"));
+        if (remotePath.endsWith("/"))
+        {
+            remotePath = remotePath.substring(0, remotePath.length()-1);
+        }*/
+        String remotePath = getAttrValueInJson(jsonObject, "path");
+
         for (Object object : localList)
         {
             DomainVO domain = (DomainVO)object;
-            if (!domain.getPath().equals(getAttrValueInJson(jsonObject, "path")))    continue;
+            String localPath = domain.getPath();
+            /*if (localPath.endsWith("/"))
+            {
+                localPath = localPath.substring(0, localPath.length()-1);
+            }
+            if (!localPath.equals(remotePath))    continue;*/
+            if (!BaseService.compareDomainPath(localPath, remotePath))  continue;
             return domain;
         }
 
@@ -114,6 +115,8 @@ public class DomainFullScanner extends FullScanner {
     protected boolean compare(Object object, JSONObject jsonObject)
     {
         DomainVO domain = (DomainVO)object;
+
+
         return true;
     }
 
@@ -121,10 +124,15 @@ public class DomainFullScanner extends FullScanner {
     protected Object create(JSONObject jsonObject, final Date created)
     {
         // find parent domain id from the domain path
-        String domainPath = getAttrValueInJson(jsonObject, "path");
+        String domainPath = convertPath(getAttrValueInJson(jsonObject, "path"));
         String parentDomainName = getAttrValueInJson(jsonObject, "parentdomainname");
         String parentPath = getParentPath(domainPath, parentDomainName);
         DomainVO parentDomain = domainDao.findDomainByPath(parentPath);
+        if (parentDomain == null)
+        {
+            s_logger.error("Domain creation has been failed because its parent domain[" + parentDomainName + "] is not found");
+            return null;
+        }
         final Long parentId = parentDomain.getId();
 
         final String domainName = getAttrValueInJson(jsonObject, "name");
@@ -143,6 +151,7 @@ public class DomainFullScanner extends FullScanner {
             public DomainVO doInTransaction(TransactionStatus status) {
                 DomainVO domain = domainDao.create(new DomainVO(domainName, ownerId, parentId, networkDomain, domainUUID, created));
                 resourceCountDao.createResourceCounts(domain.getId(), ResourceLimit.ResourceOwnerType.Domain);
+                s_logger.info("Successfully created a domain[" + domain.getName() + "]");
                 return domain;
             }
         });
@@ -152,78 +161,74 @@ public class DomainFullScanner extends FullScanner {
     @Override
     protected void update(Object object, final JSONObject jsonObject, final Date modified)
     {
-        /*final DomainVO domain = (DomainVO)object;
-        final Long domainId = domain.getId();
-
-        Transaction.execute(new TransactionCallbackNoReturn()
-        {
-            @Override
-            public void doInTransactionWithoutResult(TransactionStatus status)
-            {
-                String newDomainName = getAttrValueInJson(jsonObject, "name");
-                if (!domain.getName().equals(newDomainName)) {
-                    String updatedDomainPath = getUpdatedDomainPath(domain.getPath(), newDomainName);
-                    updateDomainChildren(domain, updatedDomainPath);
-                    domain.setName(newDomainName);
-                    domain.setPath(updatedDomainPath);
-                }
-
-                String newNetworkDomain = getAttrValueInJson(jsonObject, "networkdomain");
-                if (!domain.getNetworkDomain().equals(newNetworkDomain)) {
-                    domain.setNetworkDomain(newNetworkDomain);
-                }
-                domain.setModified(modified);
-                domainDao.update(domainId, domain);
-            }
-        });*/
-
         DomainVO domain = (DomainVO)object;
         domain.setModified(modified);
 
         String newDomainName = getAttrValueInJson(jsonObject, "name");
         String newNetworkDomain = getAttrValueInJson(jsonObject, "networkdomain");
         domainManager.updateDomain(domain, newDomainName, newNetworkDomain);
+        s_logger.info("Successfully updated a domain[" + domain.getName() + "]");
     }
 
     @Override
     protected void remove(Object object, Date removed)
     {
         DomainVO domain = (DomainVO)object;
-        //domainDao.remove(domain.getId(), removed);
 
         boolean cleanup = false;
         domain.setRemoved(removed);
         domainManager.deleteDomain(domain, cleanup);
+        s_logger.info("Successfully removed a domain[" + domain.getName() + "]");
     }
 
     protected Date isRemoteCreated(JSONObject remoteObject)
     {
-        Date created = super.isRemoteCreated(remoteObject);
-        if (created == null)    return created;
-
         String domainName = getAttrValueInJson(remoteObject, "name");
+
+        Date remoteCreated = super.isRemoteCreated(remoteObject);
+        if (remoteCreated == null)
+        {
+            s_logger.info("Domain[" + domainName + "] : create is skipped because created time of remote is null.");
+            return null;
+        }
+
         List<DomainVO> domains = domainDao.listAllIncludingRemoved();
         for(DomainVO domain : domains)
         {
-            if (domain.getName().equals(domainName) && domain.getRemoved().after(created))
+            Date localRemoved = domain.getRemoved();
+            if (domain.getName().equals(domainName) && localRemoved != null && localRemoved.after(remoteCreated))
             {
+                s_logger.info("Domain[" + domainName + "] : create is skipped because created time of remote[" + remoteCreated + "] is before removed time of local[" + localRemoved + "]");
                 return null;
             }
         }
 
-        return created;
+        return remoteCreated;
     }
 
     @Override
     protected void syncUpdate(Object object, JSONObject jsonObject)
     {
-        if (compare(object, jsonObject))    return;
-
         DomainVO domain = (DomainVO)object;
+
+        if (compare(object, jsonObject))
+        {
+            s_logger.info("Domain[" + domain.getName() + "]  : update is skipped because local & remote are same.");
+            return;
+        }
+
         Date localTimestamp = domain.getModified();
         Date remoteTimestamp = getDate(jsonObject, "modified");
-        if (localTimestamp == null || remoteTimestamp == null)  return;
-        if (localTimestamp.after(remoteTimestamp))  return;
+        if (localTimestamp == null || remoteTimestamp == null)
+        {
+            s_logger.info("Domain[" + domain.getName() + "] : update is skipped because modified times of local[" + localTimestamp + "] and/or remote[" + remoteTimestamp + "] is/are null.");
+            return;
+        }
+        if (localTimestamp.after(remoteTimestamp))
+        {
+            s_logger.info("Domain[" + domain.getName() + "] : update is skipped because modified time of local[" + localTimestamp + "] is after remote[" + remoteTimestamp + "].");
+            return;
+        }
 
         // update local domain with remote domain's modified timestamp
         update(object, jsonObject, remoteTimestamp);
@@ -234,9 +239,11 @@ public class DomainFullScanner extends FullScanner {
     {
         DomainVO domain = (DomainVO)object;
         DomainService domainService = new DomainService(hostName, userName, password);
-        //TimeZone GMT_TIMEZONE = TimeZone.getTimeZone("GMT");
-        //Date removed = domainService.isRemoved("alex_test2", "ROOT", DateUtil.parseDateString(GMT_TIMEZONE, "2013-12-18 19:44:48"));
         Date removed = domainService.isRemoved(domain.getName(), domain.getPath(), domain.getCreated());
+        if (removed == null)
+        {
+            s_logger.info("Domain[" + domain.getName() + "]  : remove is skipped because remote does not have removal history or remote removal is before local creation.");
+        }
         return removed;
     }
 }

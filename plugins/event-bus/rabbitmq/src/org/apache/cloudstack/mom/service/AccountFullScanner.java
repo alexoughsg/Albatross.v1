@@ -131,7 +131,7 @@ public class AccountFullScanner extends FullScanner {
     protected boolean compare(Object object, JSONObject jsonObject)
     {
         AccountVO account = (AccountVO)object;
-        boolean matched = account.getState().equals(getAttrValueInJson(jsonObject, "state"));
+        boolean matched = account.getState().toString().equals(getAttrValueInJson(jsonObject, "state"));
         return matched;
     }
 
@@ -188,6 +188,7 @@ public class AccountFullScanner extends FullScanner {
                 // Create default security group
                 networkGroupMgr.createDefaultSecurityGroup(accountId);
 
+                s_logger.info("Successfully created an account[" + account.getAccountName() + "]");
                 return account;
             }
         });
@@ -229,6 +230,7 @@ public class AccountFullScanner extends FullScanner {
         });*/
 
         accountManager.updateAccount(account, newAccountName, newNetworkDomain, details);
+        s_logger.info("Successfully updated an account[" + account.getAccountName() + "]");
     }
 
     @Override
@@ -238,6 +240,7 @@ public class AccountFullScanner extends FullScanner {
         account.setState(Account.State.locked);
         account.setModified(modified);
         accountDao.update(account.getId(), account);
+        s_logger.info("Successfully locked an account[" + account.getAccountName() + "]");
     }
 
     @Override
@@ -250,6 +253,7 @@ public class AccountFullScanner extends FullScanner {
         try
         {
             doDisableAccount(account.getId());
+            s_logger.info("Successfully disabled an account[" + account.getAccountName() + "]");
         }
         catch(Exception ex)
         {
@@ -265,6 +269,7 @@ public class AccountFullScanner extends FullScanner {
         account.setModified(modified);
         account.setNeedsCleanup(false);
         accountDao.update(account.getId(), account);
+        s_logger.info("Successfully enabled an account[" + account.getAccountName() + "]");
     }
 
     @Override
@@ -276,37 +281,58 @@ public class AccountFullScanner extends FullScanner {
         long callerUserId = 0;
         Account caller = null;
         accountManager.deleteAccount(account, callerUserId, caller);
+        s_logger.info("Successfully removed an account[" + account.getAccountName() + "]");
     }
 
     @Override
     protected Date isRemoteCreated(JSONObject remoteObject)
     {
-        Date created = super.isRemoteCreated(remoteObject);
-        if (created == null)    return created;
-
         String accountName = getAttrValueInJson(remoteObject, "name");
+
+        Date remoteCreated = super.isRemoteCreated(remoteObject);
+        if (remoteCreated == null)
+        {
+            s_logger.info("Account[" + accountName + "] : create is skipped because created time of remote is null.");
+            return null;
+        }
+
         List<AccountVO> accounts = accountDao.listAllIncludingRemoved();
         for(AccountVO account : accounts)
         {
-            if (account.getAccountName().equals(accountName) && account.getRemoved().after(created))
+            Date localRemoved = account.getRemoved();
+            if (account.getAccountName().equals(accountName) && localRemoved != null && localRemoved.after(remoteCreated))
             {
+                s_logger.info("Account[" + accountName + "] : create is skipped because created time of remote[" + remoteCreated + "] is before removed time of local[" + localRemoved + "]");
                 return null;
             }
         }
 
-        return created;
+        return remoteCreated;
     }
 
     @Override
     protected void syncUpdate(Object object, JSONObject jsonObject)
     {
-        if (compare(object, jsonObject))    return;
-
         AccountVO account = (AccountVO)object;
+
+        if (compare(object, jsonObject))
+        {
+            s_logger.info("Account[" + account.getAccountName() + "] : update is skipped because local & remote are same.");
+            return;
+        }
+
         Date localTimestamp = account.getModified();
         Date remoteTimestamp = getDate(jsonObject, "modified");
-        if (localTimestamp == null || remoteTimestamp == null)  return;
-        if (localTimestamp.after(remoteTimestamp))  return;
+        if (localTimestamp == null || remoteTimestamp == null)
+        {
+            s_logger.info("Account[" + account.getAccountName() + "] : update is skipped because modified times of local[" + localTimestamp + "] and/or remote[" + remoteTimestamp + "] is/are null.");
+            return;
+        }
+        if (localTimestamp.after(remoteTimestamp))
+        {
+            s_logger.info("Account[" + account.getAccountName() + "] : update is skipped because modified time of local[" + localTimestamp + "] is after remote[" + remoteTimestamp + "].");
+            return;
+        }
 
         // update local account with remote account's modified timestamp
         update(object, jsonObject, remoteTimestamp);
@@ -316,11 +342,15 @@ public class AccountFullScanner extends FullScanner {
     protected Date isRemoteRemoved(Object object, String hostName, String userName, String password)
     {
         AccountVO account = (AccountVO)object;
-        DomainVO domain = domainDao.findById(account.getId());
+        DomainVO domain = domainDao.findById(account.getDomainId());
         AccountService accountService = new AccountService(hostName, userName, password);
         //TimeZone GMT_TIMEZONE = TimeZone.getTimeZone("GMT");
         //Date removed = domainService.isRemoved("alex_test2", "ROOT", DateUtil.parseDateString(GMT_TIMEZONE, "2013-12-18 19:44:48"));
         Date removed = accountService.isRemoved(account.getAccountName(), domain.getPath(), account.getCreated());
+        if (removed == null)
+        {
+            s_logger.info("Account[" + account.getAccountName() + "]  : remove is skipped because remote does not have removal history or remote removal is before local creation.");
+        }
         return removed;
     }
 }

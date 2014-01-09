@@ -7,8 +7,6 @@ import java.net.URLEncoder;
 
 public class AccountInterface extends BaseInterface {
 
-    //private static final Logger s_logger = Logger.getLogger(AccountInterface.class);
-
     public AccountInterface(String url)
     {
         super(url);
@@ -18,7 +16,8 @@ public class AccountInterface extends BaseInterface {
     {
         // command=listAccounts&response=json&sessionkey=XxjzeJWHV3S%2Brwq2m2EsYTSIYNE%3D&listAll=true&page=1&pagesize=20&_=1362457447296
 
-        String paramStr = "command=listAccounts&listAll=true&page=1&pagesize=20&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        //String paramStr = "command=listAccounts&listAll=true&page=1&pagesize=20&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        String paramStr = "command=listAccounts&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         if (domainId != null)   paramStr += "&domainId=" + domainId;
         JSONObject retJson = sendApacheGet(paramStr);
 
@@ -83,27 +82,18 @@ public class AccountInterface extends BaseInterface {
     public JSONObject disableAccount(String accountId) throws Exception
     {
         String paramStr = "command=disableAccount&id=" + accountId + "&lock=false&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
-        //if (accountId != null)  paramStr += "&id=" + accountId;
-        //if (accountName != null)   paramStr += "&name=" + accountName;
-        //if (domainId != null)   paramStr += "&domainid=" + domainId;
         return sendApacheGet(paramStr);
     }
 
     public JSONObject lockAccount(String accountId) throws Exception
     {
         String paramStr = "command=disableAccount&id=" + accountId + "&lock=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
-        //if (accountId != null)  paramStr += "&id=" + accountId;
-        //if (accountName != null)   paramStr += "&name=" + accountName;
-        //if (domainId != null)   paramStr += "&domainid=" + domainId;
         return sendApacheGet(paramStr);
     }
 
     public JSONObject enableAccount(String accountId) throws Exception
     {
         String paramStr = "command=enableAccount&id=" + accountId + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
-        //if (accountId != null)  paramStr += "&id=" + accountId;
-        //if (accountName != null)   paramStr += "&name=" + accountName;
-        //if (domainId != null)   paramStr += "&domainid=" + domainId;
         return sendApacheGet(paramStr);
     }
 

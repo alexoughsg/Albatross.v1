@@ -10,6 +10,9 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.framework.events.EventSubscriber;
+import org.apache.cloudstack.mom.service.AccountFullScanner;
+import org.apache.cloudstack.mom.service.DomainFullScanner;
+import org.apache.cloudstack.mom.service.UserFullScanner;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -32,9 +35,8 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     protected UserDao userDao;
 
     protected String[][] regions = {
-            {"localhost", "admin", "password"},
             //{"10.88.90.82", "admin", "password"},
-            //{"207.19.99.100", "admin", "password"}
+            {"10.88.90.83", "admin", "password"},
     };
 
 
@@ -81,5 +83,25 @@ public class MultiRegionSubscriber  implements EventSubscriber {
             Map.Entry e = (Map.Entry)i.next();
             s_logger.info("Key: " + e.getKey() + ", Value: " + e.getValue());
         }
+
+        // if the event is user login from outside, do the full scan
+        String eventType = event.getEventType();
+        String description = event.getDescription();
+        if (eventType.equals("USER-LOGIN") && !description.contains("127.0.0.1"))
+        {
+            fullScan();
+        }
+    }
+
+    public void fullScan()
+    {
+        DomainFullScanner domainScanner = new DomainFullScanner();
+        domainScanner.refreshAll(regions);
+
+        AccountFullScanner accountScanner = new AccountFullScanner();
+        accountScanner.refreshAll(regions);
+
+        UserFullScanner userScanner = new UserFullScanner();
+        userScanner.refreshAll(regions);
     }
 }

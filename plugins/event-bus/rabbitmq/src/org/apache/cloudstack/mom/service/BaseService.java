@@ -5,6 +5,8 @@ import com.amazonaws.util.json.JSONObject;
 import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.log4j.Logger;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.StringTokenizer;
 
@@ -30,7 +32,27 @@ public class BaseService {
         return null;
     }
 
-    protected String arrangeDomainPath(String domainPath)
+    public static boolean compareDomainPath(String path1, String path2)
+    {
+        path1 = path1.replace("ROOT", "");
+        path2 = path2.replace("ROOT", "");
+
+        if (path1.endsWith("/"))
+        {
+            path1 = path1.substring(0, path1.length()-1);
+        }
+
+        if (path2.endsWith("/"))
+        {
+            path2 = path2.substring(0, path2.length()-1);
+        }
+
+
+        return path1.equals(path2);
+    }
+
+
+    /*protected String arrangeDomainPath(String domainPath)
     {
         // In 'createDomainResponse' of server.com.cloud.api.ApiResponseHelper as below,
         // the domain path is changed, so we need to revert back what is same style with what returns domainVO.getPath()
@@ -41,6 +63,24 @@ public class BaseService {
         if (domainPath.endsWith("/"))   return domainPath;
 
         return domainPath + "/";
+    }*/
+
+    protected Date parseDateStr(String dateStr)
+    {
+        if (dateStr == null)    return null;
+        Date created = null;
+        try
+        {
+            DateFormat dfParse = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            created = dfParse.parse(dateStr);
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to parse date string", ex);
+            return null;
+        }
+
+        return created;
     }
 
     protected String getAttrValue(JSONObject obj, String attrName)
@@ -93,11 +133,15 @@ public class BaseService {
             for(; aIndex < attrNames.length; aIndex++)
             {
                 String value = getAttrValue(obj, attrNames[aIndex]);
-                if (attrNames[aIndex].equals("path"))
+                /*if (attrNames[aIndex].equals("path"))
                 {
                     value = arrangeDomainPath(value);
                 }
                 if(!value.equals(attrValues[aIndex]))
+                {
+                    break;
+                }*/
+                if(!BaseService.compareDomainPath(value, attrValues[aIndex]))
                 {
                     break;
                 }
@@ -150,20 +194,20 @@ public class BaseService {
         return jobResult;
     }
 
-    protected JSONArray listEvents(String type, String keyword, Date startDate, Date endData) throws Exception
+    protected JSONArray listEvents(String type, String keyword, Date startDate, Date endDate) throws Exception
     {
         BaseInterface apiInterface = new BaseInterface(this.url);
         try
         {
             apiInterface.login(this.userName, this.password);
 
-            JSONArray eventArray = apiInterface.listEvents(type, keyword, startDate, endData);
-            s_logger.info("Successfully retrieved events with type[" + type + "], keyword[" + keyword + "], startDate[" + startDate + "], endDate[" + endData + "] in host[" + this.hostName + "]");
+            JSONArray eventArray = apiInterface.listEvents(type, keyword, startDate, endDate);
+            s_logger.info("Successfully retrieved events with type[" + type + "], keyword[" + keyword + "], startDate[" + startDate + "], endDate[" + endDate + "] in host[" + this.hostName + "]");
             return eventArray;
         }
         catch(Exception ex)
         {
-            s_logger.error("Failed to retrieve events with type[" + type + "], keyword[" + keyword + "], startDate[" + startDate + "], endDate[" + endData + "] in host[" + this.hostName + "]", ex);
+            s_logger.error("Failed to retrieve events with type[" + type + "], keyword[" + keyword + "], startDate[" + startDate + "], endDate[" + endDate + "] in host[" + this.hostName + "]", ex);
             throw ex;
         }
         finally {

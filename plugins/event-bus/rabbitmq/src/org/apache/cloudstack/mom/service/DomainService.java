@@ -3,7 +3,6 @@ package org.apache.cloudstack.mom.service;
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
-import com.cloud.utils.DateUtil;
 import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.cloudstack.mom.api_interface.DomainInterface;
 import org.apache.log4j.Logger;
@@ -258,6 +257,7 @@ public class DomainService extends BaseService {
         }
         catch(Exception ex)
         {
+            s_logger.error(ex.getStackTrace());
             return null;
         }
         if (eventList == null || eventList.length() == 0)    return null;
@@ -267,18 +267,16 @@ public class DomainService extends BaseService {
             try
             {
                 JSONObject jsonObject = parseEventDescription(eventList.getJSONObject(idx));
-                String eventDomainName = getAttrValue(jsonObject, "Domain Name");
                 String eventDomainPath = getAttrValue(jsonObject, "Domain Path");
 
-                if (eventDomainName == null)    continue;
-                if (!eventDomainName.equals(domainName))    continue;
                 if (eventDomainPath == null)  continue;
                 if (!eventDomainPath.equals(domainPath))    continue;
 
-                return DateUtil.parseTZDateString(getAttrValue(jsonObject, "created"));
+                return parseDateStr(getAttrValue(jsonObject, "created"));
             }
             catch(Exception ex)
             {
+                s_logger.error(ex.getStackTrace());
                 return null;
             }
         }

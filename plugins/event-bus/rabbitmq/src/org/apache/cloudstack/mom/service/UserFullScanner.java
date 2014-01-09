@@ -154,6 +154,7 @@ public class UserFullScanner extends FullScanner {
         user.setUsername(getAttrValueInJson(jsonObject, "username"));
         user.setModified(modified);
         userDao.update(user.getId(), user);
+        s_logger.info("Successfully updated a user[" + user.getUsername() + "]");
     }
 
     @Override
@@ -164,6 +165,7 @@ public class UserFullScanner extends FullScanner {
         userForUpdate.setState(Account.State.locked);
         userForUpdate.setModified(modified);
         userDao.update(Long.valueOf(user.getId()), userForUpdate);
+        s_logger.info("Successfully locked a user[" + user.getUsername() + "]");
     }
 
     @Override
@@ -174,6 +176,7 @@ public class UserFullScanner extends FullScanner {
         userForUpdate.setState(Account.State.disabled);
         userForUpdate.setModified(modified);
         userDao.update(Long.valueOf(user.getId()), userForUpdate);
+        s_logger.info("Successfully disabled a user[" + user.getUsername() + "]");
     }
 
     @Override
@@ -184,6 +187,7 @@ public class UserFullScanner extends FullScanner {
         userForUpdate.setState(Account.State.enabled);
         userForUpdate.setModified(modified);
         userDao.update(Long.valueOf(user.getId()), userForUpdate);
+        s_logger.info("Successfully enabled a user[" + user.getUsername() + "]");
     }
 
     @Override
@@ -191,37 +195,58 @@ public class UserFullScanner extends FullScanner {
     {
         UserVO user = (UserVO)object;
         userDao.remove(user.getId(), removed);
+        s_logger.info("Successfully removed a user[" + user.getUsername() + "]");
     }
 
     @Override
     protected Date isRemoteCreated(JSONObject remoteObject)
     {
-        Date created = super.isRemoteCreated(remoteObject);
-        if (created == null)    return created;
-
         String userName = getAttrValueInJson(remoteObject, "username");
+
+        Date remoteCreated = super.isRemoteCreated(remoteObject);
+        if (remoteCreated == null)
+        {
+            s_logger.info("User[" + userName + "] : create is skipped because created time of remote is null.");
+            return null;
+        }
+
         List<UserVO> users = userDao.listAll();
         for(UserVO user : users)
         {
-            if (user.getUsername().equals(userName) && user.getRemoved().after(created))
+            Date localRemoved = user.getRemoved();
+            if (user.getUsername().equals(userName) && localRemoved != null && localRemoved.after(remoteCreated))
             {
+                s_logger.info("User[" + userName + "] : create is skipped because created time of remote[" + remoteCreated + "] is before removed time of local[" + localRemoved + "]");
                 return null;
             }
         }
 
-        return created;
+        return remoteCreated;
     }
 
     @Override
     protected void syncUpdate(Object object, JSONObject jsonObject)
     {
-        if (compare(object, jsonObject))    return;
-
         UserVO user = (UserVO)object;
+
+        if (compare(object, jsonObject))
+        {
+            s_logger.info("User[" + user.getUsername() + "] : update is skipped because local & remote are same.");
+            return;
+        }
+
         Date localTimestamp = user.getModified();
         Date remoteTimestamp = getDate(jsonObject, "modified");
-        if (localTimestamp == null || remoteTimestamp == null)  return;
-        if (localTimestamp.after(remoteTimestamp))  return;
+        if (localTimestamp == null || remoteTimestamp == null)
+        {
+            s_logger.info("User[" + ((UserVO)object).getUsername() + "] : update is skipped because modified times of local[" + localTimestamp + "] and/or remote[" + remoteTimestamp + "] is/are null.");
+            return;
+        }
+        if (localTimestamp.after(remoteTimestamp))
+        {
+            s_logger.info("User[" + ((UserVO)object).getUsername() + "] : update is skipped because modified time of local[" + localTimestamp + "] is after remote[" + remoteTimestamp + "].");
+            return;
+        }
 
         // update local user with remote user's modified timestamp
         update(object, jsonObject, remoteTimestamp);
@@ -232,11 +257,13 @@ public class UserFullScanner extends FullScanner {
     {
         UserVO user = (UserVO)object;
         AccountVO account = accountDao.findById(user.getAccountId());
-        DomainVO domain = domainDao.findById(account.getId());
+        DomainVO domain = domainDao.findById(account.getDomainId());
         UserService userService = new UserService(hostName, userName, password);
-        //TimeZone GMT_TIMEZONE = TimeZone.getTimeZone("GMT");
-        //Date removed = domainService.isRemoved("alex_test2", "ROOT", DateUtil.parseDateString(GMT_TIMEZONE, "2013-12-18 19:44:48"));
         Date removed = userService.isRemoved(user.getUsername(), account.getAccountName(), domain.getPath(), user.getCreated());
+        if (removed == null)
+        {
+            s_logger.info("User[" + user.getUsername() + "]  : remove is skipped because remote does not have removal history or remote removal is before local creation.");
+        }
         return removed;
     }
 }

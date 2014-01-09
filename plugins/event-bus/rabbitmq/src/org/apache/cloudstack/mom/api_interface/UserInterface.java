@@ -6,8 +6,6 @@ import java.net.URLEncoder;
 
 public class UserInterface extends BaseInterface {
 
-    //private static final Logger s_logger = Logger.getLogger(UserInterface.class);
-
     public UserInterface(String url)
     {
         super(url);
@@ -15,7 +13,8 @@ public class UserInterface extends BaseInterface {
 
     public JSONArray listUsers() throws Exception
     {
-        String paramStr = "command=listUsers&listAll=true&page=1&pagesize=20&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        //String paramStr = "command=listUsers&listAll=true&page=1&pagesize=20&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        String paramStr = "command=listUsers&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         return (JSONArray)sendApacheGet(paramStr).get("user");
     }
 

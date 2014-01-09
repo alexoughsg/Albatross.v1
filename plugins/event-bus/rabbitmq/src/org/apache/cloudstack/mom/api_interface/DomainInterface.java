@@ -7,8 +7,6 @@ import java.net.URLEncoder;
 
 public class DomainInterface extends BaseInterface {
 
-    //private static final Logger s_logger = Logger.getLogger(DomainInterface.class);
-
     public DomainInterface(String url)
     {
         super(url);

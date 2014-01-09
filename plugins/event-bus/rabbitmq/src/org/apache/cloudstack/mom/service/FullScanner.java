@@ -5,6 +5,8 @@ import com.amazonaws.util.json.JSONObject;
 import com.cloud.utils.DateUtil;
 import org.apache.log4j.Logger;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -102,7 +104,7 @@ public class FullScanner {
     {
         try
         {
-            return (String) jsonObject.get(attrName);
+            return jsonObject.get(attrName).toString();
         }
         catch(Exception ex)
         {
@@ -115,7 +117,8 @@ public class FullScanner {
         Date created = null;
         try
         {
-            created = DateUtil.parseTZDateString(getAttrValueInJson(remoteObject, "created"));
+            DateFormat dfParse = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+            created = dfParse.parse(getAttrValueInJson(remoteObject, "created"));
         }
         catch(Exception ex)
         {
@@ -171,6 +174,7 @@ public class FullScanner {
     protected void synchronize(JSONObject remoteJson, List localList, List processedList)
     {
         Object localObject = find(remoteJson, localList);
+        s_logger.info("Sync object : " + remoteJson);
         if (localObject == null)
         {
             syncCreate(remoteJson);
@@ -185,6 +189,7 @@ public class FullScanner {
 
     protected void synchronize(String[] remoteServerInfo, List processedList)
     {
+        s_logger.info("Sync objects with region : " + remoteServerInfo[0]);
         JSONArray remoteList = findRemoteList(remoteServerInfo);
         List localList = findLocalList();
 
@@ -219,6 +224,7 @@ public class FullScanner {
         }
 
         // now process the local resources that were not sync'ed
+        s_logger.info("Verify un-sync'ed objects");
         List localList = findLocalList();
         for(Object object : localList)
         {
@@ -230,7 +236,7 @@ public class FullScanner {
             }
             catch(Exception ex)
             {
-                s_logger.error("Failed in syncRemove", ex);
+                s_logger.error("Failed in syncRemove : " + ex.getStackTrace());
             }
         }
     }

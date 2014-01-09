@@ -5,7 +5,6 @@ import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
 import com.cloud.user.Account;
 import com.cloud.user.User;
-import com.cloud.utils.DateUtil;
 import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.cloudstack.mom.api_interface.UserInterface;
 import org.apache.log4j.Logger;
@@ -426,13 +425,14 @@ public class UserService extends BaseService {
                 if (eventDomainPath == null)    continue;
                 if (!eventDomainPath.equals(domainPath))    continue;
 
-                return DateUtil.parseTZDateString(getAttrValue(jsonObject, "created"));
+                return parseDateStr(getAttrValue(jsonObject, "created"));
             }
 
             return null;
         }
         catch(Exception ex)
         {
+            s_logger.error(ex.getStackTrace());
             return null;
         }
     }
