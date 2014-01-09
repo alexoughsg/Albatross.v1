@@ -10,8 +10,10 @@ import com.cloud.user.UserVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -68,9 +70,9 @@ public class UserFullScanner extends FullScanner {
             AccountVO account = accountDao.findById(user.getAccountId());
             DomainVO domain = domainDao.findById(account.getDomainId());
 
-            if (!user.getUsername().equals(getAttrValueInJson(jsonObject, "username")))    continue;
-            if (!account.getAccountName().equals(getAttrValueInJson(jsonObject, "account")))    continue;
-            if (!domain.getPath().equals(getAttrValueInJson(jsonObject, "path")))    continue;
+            if (!user.getUsername().equals(BaseService.getAttrValue(jsonObject, "username")))    continue;
+            if (!account.getAccountName().equals(BaseService.getAttrValue(jsonObject, "account")))    continue;
+            if (!domain.getPath().equals(BaseService.getAttrValue(jsonObject, "path")))    continue;
 
             return user;
         }
@@ -82,7 +84,7 @@ public class UserFullScanner extends FullScanner {
     protected boolean compare(Object object, JSONObject jsonObject)
     {
         UserVO user = (UserVO)object;
-        boolean matched = user.getState().equals(getAttrValueInJson(jsonObject, "state"));
+        boolean matched = user.getState().equals(BaseService.getAttrValue(jsonObject, "state"));
         return matched;
     }
 
@@ -92,8 +94,8 @@ public class UserFullScanner extends FullScanner {
         try
         {
             AccountVO account = null;
-            String domainPath = getAttrValueInJson(jsonObject, "path");
-            String accountName = getAttrValueInJson(jsonObject, "account");
+            String domainPath = BaseService.getAttrValue(jsonObject, "path");
+            String accountName = BaseService.getAttrValue(jsonObject, "account");
 
             // find a domain using its path
             DomainVO domain = domainDao.findDomainByPath(domainPath);
@@ -120,13 +122,13 @@ public class UserFullScanner extends FullScanner {
             }
 
             long accountId = account.getId();
-            String userName = getAttrValueInJson(jsonObject, "username");
+            String userName = BaseService.getAttrValue(jsonObject, "username");
             //String password = getAttrValueInJson(jsonObject, "passowrd");
             String password = TEMP_PASSWORD;
-            String firstName = getAttrValueInJson(jsonObject, "firstname");
-            String lastName = getAttrValueInJson(jsonObject, "lastname");
-            String email = getAttrValueInJson(jsonObject, "email");
-            String timezone = getAttrValueInJson(jsonObject, "timezone");
+            String firstName = BaseService.getAttrValue(jsonObject, "firstname");
+            String lastName = BaseService.getAttrValue(jsonObject, "lastname");
+            String email = BaseService.getAttrValue(jsonObject, "email");
+            String timezone = BaseService.getAttrValue(jsonObject, "timezone");
             String userUUID = UUID.randomUUID().toString();
             UserVO user = new UserVO(accountId, userName, password, firstName, lastName, email, timezone, userUUID, created);
             userDao.persist(user);
@@ -144,14 +146,14 @@ public class UserFullScanner extends FullScanner {
     protected void update(Object object, JSONObject jsonObject, Date modified)
     {
         UserVO user = (UserVO)object;
-        user.setApiKey(getAttrValueInJson(jsonObject, "apikey"));
-        user.setFirstname(getAttrValueInJson(jsonObject, "firstname"));
-        user.setEmail(getAttrValueInJson(jsonObject, "email"));
-        user.setLastname(getAttrValueInJson(jsonObject, "lastname"));
+        user.setApiKey(BaseService.getAttrValue(jsonObject, "apikey"));
+        user.setFirstname(BaseService.getAttrValue(jsonObject, "firstname"));
+        user.setEmail(BaseService.getAttrValue(jsonObject, "email"));
+        user.setLastname(BaseService.getAttrValue(jsonObject, "lastname"));
         //user.setPassword("");
-        user.setSecretKey(getAttrValueInJson(jsonObject, "secretkey"));
-        user.setTimezone(getAttrValueInJson(jsonObject, "timezone"));
-        user.setUsername(getAttrValueInJson(jsonObject, "username"));
+        user.setSecretKey(BaseService.getAttrValue(jsonObject, "secretkey"));
+        user.setTimezone(BaseService.getAttrValue(jsonObject, "timezone"));
+        user.setUsername(BaseService.getAttrValue(jsonObject, "username"));
         user.setModified(modified);
         userDao.update(user.getId(), user);
         s_logger.info("Successfully updated a user[" + user.getUsername() + "]");
@@ -199,9 +201,24 @@ public class UserFullScanner extends FullScanner {
     }
 
     @Override
+    protected JSONArray listEvents(String hostName, String userName, String password, Date created)
+    {
+        try
+        {
+            UserService userService = new UserService(hostName, userName, password);
+            return userService.listEvents("USER.DELETE", "completed", created, null);
+        }
+        catch(Exception ex)
+        {
+            s_logger.error(ex.getStackTrace());
+            return null;
+        }
+    }
+
+    @Override
     protected Date isRemoteCreated(JSONObject remoteObject)
     {
-        String userName = getAttrValueInJson(remoteObject, "username");
+        String userName = BaseService.getAttrValue(remoteObject, "username");
 
         Date remoteCreated = super.isRemoteCreated(remoteObject);
         if (remoteCreated == null)
@@ -253,17 +270,83 @@ public class UserFullScanner extends FullScanner {
     }
 
     @Override
-    protected Date isRemoteRemoved(Object object, String hostName, String userName, String password)
+    protected boolean exist(Object object, ArrayList<Object> processedList)
+    {
+        UserVO user = (UserVO)object;
+        for(Object next : processedList)
+        {
+            UserVO nextUser = (UserVO)next;
+            if (user.getAccountId() != nextUser.getAccountId()) continue;
+            if (!user.getUsername().equals(nextUser.getUsername()))  continue;
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    protected Date isRemoteRemoved(Object object, JSONArray eventList)
     {
         UserVO user = (UserVO)object;
         AccountVO account = accountDao.findById(user.getAccountId());
         DomainVO domain = domainDao.findById(account.getDomainId());
-        UserService userService = new UserService(hostName, userName, password);
-        Date removed = userService.isRemoved(user.getUsername(), account.getAccountName(), domain.getPath(), user.getCreated());
+
+        Date created = user.getCreated();
+        if (created == null)
+        {
+            s_logger.info("User[" + user.getUsername() + "]  : remove is skipped because local create time is null.");
+            return null;
+        }
+
+        Date removed = isRemoved(user.getUsername(), account.getAccountName(), domain.getPath(), eventList);
         if (removed == null)
         {
-            s_logger.info("User[" + user.getUsername() + "]  : remove is skipped because remote does not have removal history or remote removal is before local creation.");
+            return null;
         }
+
+        if (removed.before(created))
+        {
+            s_logger.info("User[" + user.getUsername() + "]  : remove is skipped because remote remove time is before local create time.");
+            return null;
+        }
+
         return removed;
+    }
+
+    private Date isRemoved(String userName, String accountName, String domainPath, JSONArray eventList)
+    {
+        for (int idx = 0; idx < eventList.length(); idx++)
+        {
+            try
+            {
+                JSONObject jsonObject = BaseService.parseEventDescription((JSONObject)eventList.get(idx));
+                String eventUserName = (String)jsonObject.get("User Name");
+                String eventAccountName = (String)jsonObject.get("Account Name");
+                String eventDomainPath = BaseService.getAttrValue(jsonObject, "Domain Path");
+
+                if (eventUserName == null)  continue;
+                if (!eventUserName.equals(userName))    continue;
+                if (eventAccountName == null)  continue;
+                if (!eventAccountName.equals(accountName))    continue;
+                if (eventDomainPath == null)    continue;
+                if (!eventDomainPath.equals(domainPath))    continue;
+
+                if (!BaseInterface.hasAttribute(jsonObject, "created"))
+                {
+                    s_logger.info("User[" + userName + "]  : remove is skipped because remove event created time is not available.");
+                    return null;
+                }
+
+                return BaseService.parseDateStr(BaseService.getAttrValue(jsonObject, "created"));
+            }
+            catch(Exception ex)
+            {
+                s_logger.error(ex.getStackTrace());
+                return null;
+            }
+        }
+
+        s_logger.info("User[" + userName + "]  : remove is skipped because removal history can't be found.");
+        return null;
     }
 }

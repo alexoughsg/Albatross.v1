@@ -87,6 +87,11 @@ public class FullScanner {
 
     }
 
+    protected JSONArray listEvents(String hostName, String userName, String password, Date created)
+    {
+        return null;
+    }
+
     protected Date getDate(JSONObject jsonObject, String attrName)
     {
         try
@@ -100,25 +105,13 @@ public class FullScanner {
         }
     }
 
-    protected String getAttrValueInJson(JSONObject jsonObject, String attrName)
-    {
-        try
-        {
-            return jsonObject.get(attrName).toString();
-        }
-        catch(Exception ex)
-        {
-            return null;
-        }
-    }
-
     protected Date isRemoteCreated(JSONObject remoteObject)
     {
         Date created = null;
         try
         {
             DateFormat dfParse = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-            created = dfParse.parse(getAttrValueInJson(remoteObject, "created"));
+            created = dfParse.parse(BaseService.getAttrValue(remoteObject, "created"));
         }
         catch(Exception ex)
         {
@@ -149,20 +142,23 @@ public class FullScanner {
 
     }
 
-    protected Date isRemoteRemoved(Object object, String hostName, String userName, String password)
+    protected Date isRemoteRemoved(Object object, JSONArray eventList)
     {
         return null;
     }
 
-    protected void syncRemove(Object object, String[][] remoteRegions)
+    protected boolean exist(Object object, ArrayList<Object> processedList)
     {
-        for(String[] remoteRegion : remoteRegions)
-        {
-            String hostName = remoteRegion[0];
-            String userName = remoteRegion[1];
-            String password = remoteRegion[2];
+        return false;
+    }
 
-            Date removed = isRemoteRemoved(object, hostName, userName, password);
+    protected void syncRemove(List localList, JSONArray events, ArrayList<Object> processedList)
+    {
+        for(Object object : localList)
+        {
+            if(exist(object, processedList))   continue;
+
+            Date removed = isRemoteRemoved(object, events);
             if (removed != null)
             {
                 remove(object, removed);
@@ -171,7 +167,7 @@ public class FullScanner {
         }
     }
 
-    protected void synchronize(JSONObject remoteJson, List localList, List processedList)
+    protected void synchronize(JSONObject remoteJson, List localList, ArrayList<Object> processedList)
     {
         Object localObject = find(remoteJson, localList);
         s_logger.info("Sync object : " + remoteJson);
@@ -182,14 +178,13 @@ public class FullScanner {
         else
         {
             syncUpdate(localObject, remoteJson);
+            processedList.add(localObject);
         }
-
-        if (localObject != null && !processedList.contains(localObject))    processedList.add(localObject);
     }
 
-    protected void synchronize(String[] remoteServerInfo, List processedList)
+    protected void synchronize(String[] remoteServerInfo, ArrayList<Object> processedList)
     {
-        s_logger.info("Sync objects with region : " + remoteServerInfo[0]);
+        s_logger.info("Starting to full scan objects with region : " + remoteServerInfo[0]);
         JSONArray remoteList = findRemoteList(remoteServerInfo);
         List localList = findLocalList();
 
@@ -211,32 +206,43 @@ public class FullScanner {
     public void refreshAll(String[][] remoteRegions)
     {
         ArrayList<Object> processedList = new ArrayList<Object>();
-        for (int index = 0; index < remoteRegions.length; index++)
+        List localListBeforeProcess = findLocalList();
+
+        for (String[] remoteRegion : remoteRegions)
         {
             try
             {
-                synchronize(remoteRegions[index], processedList);
+                synchronize(remoteRegion, processedList);
             }
             catch(Exception ex)
             {
-                s_logger.error("Failed in synchronize with remote region[" + remoteRegions[index][0] + "]", ex);
+                s_logger.error("Full scan failed with remote region[" + remoteRegion[0] + "]", ex);
             }
         }
 
         // now process the local resources that were not sync'ed
-        s_logger.info("Verify un-sync'ed objects");
-        List localList = findLocalList();
-        for(Object object : localList)
+        for(String[] remoteRegion : remoteRegions)
         {
-            if (processedList.contains(object)) continue;
+            s_logger.info("Verify objects with region : " + remoteRegion[0]);
 
+            String hostName = remoteRegion[0];
+            String userName = remoteRegion[1];
+            String password = remoteRegion[2];
             try
             {
-                syncRemove(object, remoteRegions);
+                Date created = null;
+                JSONArray events = listEvents(hostName, userName, password, created);
+                if (events == null || events.length() == 0)
+                {
+                    s_logger.info("Skipping verification because there is no remove event found in the remote.");
+                    continue;
+                }
+                syncRemove(localListBeforeProcess, events, processedList);
+                s_logger.info("Verification completed with region : " + remoteRegion[0]);
             }
             catch(Exception ex)
             {
-                s_logger.error("Failed in syncRemove : " + ex.getStackTrace());
+                s_logger.error("Verification failed with remote region[" + remoteRegion[0] + "]", ex);
             }
         }
     }

@@ -38,7 +38,7 @@ public class BaseInterface {
         this.gson = new GsonBuilder().create();
     }
 
-    protected boolean hasAttribute(JSONObject jsonObject, String attributeName)
+    public static boolean hasAttribute(JSONObject jsonObject, String attributeName)
     {
         Iterator<String> iterator = jsonObject.keys();
         while(iterator.hasNext())

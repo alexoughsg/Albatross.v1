@@ -7,8 +7,6 @@ import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.cloudstack.mom.api_interface.DomainInterface;
 import org.apache.log4j.Logger;
 
-import java.util.Date;
-
 public class DomainService extends BaseService {
 
     private static final Logger s_logger = Logger.getLogger(DomainService.class);
@@ -248,7 +246,7 @@ public class DomainService extends BaseService {
         }
     }
 
-    public Date isRemoved(String domainName, String domainPath, Date created)
+    /*public Date isRemoved(String domainName, String domainPath, Date created)
     {
         JSONArray eventList = null;
         try
@@ -282,5 +280,5 @@ public class DomainService extends BaseService {
         }
 
         return null;
-    }
+    }*/
 }

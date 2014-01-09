@@ -24,12 +24,14 @@ import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineManager;
 import com.cloud.vm.dao.VMInstanceDao;
+import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.log4j.Logger;
 
-import java.util.Date;
 import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 
 public class AccountFullScanner extends FullScanner {
 
@@ -118,8 +120,8 @@ public class AccountFullScanner extends FullScanner {
             AccountVO account = (AccountVO)object;
             DomainVO domain = domainDao.findById(account.getDomainId());
 
-            if (!account.getAccountName().equals(getAttrValueInJson(jsonObject, "name")))    continue;
-            if (!domain.getPath().equals(getAttrValueInJson(jsonObject, "path")))    continue;
+            if (!account.getAccountName().equals(BaseService.getAttrValue(jsonObject, "name")))    continue;
+            if (!domain.getPath().equals(BaseService.getAttrValue(jsonObject, "path")))    continue;
 
             return account;
         }
@@ -131,7 +133,7 @@ public class AccountFullScanner extends FullScanner {
     protected boolean compare(Object object, JSONObject jsonObject)
     {
         AccountVO account = (AccountVO)object;
-        boolean matched = account.getState().toString().equals(getAttrValueInJson(jsonObject, "state"));
+        boolean matched = account.getState().toString().equals(BaseService.getAttrValue(jsonObject, "state"));
         return matched;
     }
 
@@ -139,7 +141,7 @@ public class AccountFullScanner extends FullScanner {
     protected Object create(JSONObject jsonObject, final Date created)
     {
         // find domain id
-        String domainPath = getAttrValueInJson(jsonObject, "path");
+        String domainPath = BaseService.getAttrValue(jsonObject, "path");
         DomainVO domain = domainDao.findDomainByPath(domainPath);
         if (domain == null)
         {
@@ -159,9 +161,9 @@ public class AccountFullScanner extends FullScanner {
         }
 
         final Long domainId = domain.getId();
-        final String accountName = getAttrValueInJson(jsonObject, "name");
-        final String networkDomain = getAttrValueInJson(jsonObject, "networkdomain");
-        final short accountType = Short.parseShort(getAttrValueInJson(jsonObject, "accounttype"));
+        final String accountName = BaseService.getAttrValue(jsonObject, "name");
+        final String networkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
+        final short accountType = Short.parseShort(BaseService.getAttrValue(jsonObject, "accounttype"));
         final Map<String, String> accountDetails = details;
         final String accountUUID = UUID.randomUUID().toString();
 
@@ -211,23 +213,9 @@ public class AccountFullScanner extends FullScanner {
 
         account.setModified(modified);
 
-        String newAccountName = getAttrValueInJson(jsonObject, "name");
-        String newNetworkDomain = getAttrValueInJson(jsonObject, "networkdomain");
+        String newAccountName = BaseService.getAttrValue(jsonObject, "name");
+        String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
         final Map<String, String> accountDetails = details;
-
-        /*Transaction.execute(new TransactionCallbackNoReturn()
-        {
-            @Override
-            public void doInTransactionWithoutResult(TransactionStatus status)
-            {
-                boolean success = accountDao.update(acctForUpdate.getId(), acctForUpdate);
-
-                if (accountDetails != null && success)
-                {
-                    accountDetailsDao.update(acctForUpdate.getId(), accountDetails);
-                }
-            }
-        });*/
 
         accountManager.updateAccount(account, newAccountName, newNetworkDomain, details);
         s_logger.info("Successfully updated an account[" + account.getAccountName() + "]");
@@ -284,10 +272,24 @@ public class AccountFullScanner extends FullScanner {
         s_logger.info("Successfully removed an account[" + account.getAccountName() + "]");
     }
 
+    protected JSONArray listEvents(String hostName, String userName, String password, Date created)
+    {
+        try
+        {
+            AccountService accountService = new AccountService(hostName, userName, password);
+            return accountService.listEvents("ACCOUNT.DELETE", "completed", created, null);
+        }
+        catch(Exception ex)
+        {
+            s_logger.error(ex.getStackTrace());
+            return null;
+        }
+    }
+
     @Override
     protected Date isRemoteCreated(JSONObject remoteObject)
     {
-        String accountName = getAttrValueInJson(remoteObject, "name");
+        String accountName = BaseService.getAttrValue(remoteObject, "name");
 
         Date remoteCreated = super.isRemoteCreated(remoteObject);
         if (remoteCreated == null)
@@ -339,18 +341,79 @@ public class AccountFullScanner extends FullScanner {
     }
 
     @Override
-    protected Date isRemoteRemoved(Object object, String hostName, String userName, String password)
+    protected boolean exist(Object object, ArrayList<Object> processedList)
+    {
+        AccountVO account = (AccountVO)object;
+        for(Object next : processedList)
+        {
+            AccountVO nextAccount = (AccountVO)next;
+            if (account.getDomainId() != nextAccount.getDomainId()) continue;
+            if (!account.getAccountName().equals(nextAccount.getAccountName()))  continue;
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    protected Date isRemoteRemoved(Object object, JSONArray eventList)
     {
         AccountVO account = (AccountVO)object;
         DomainVO domain = domainDao.findById(account.getDomainId());
-        AccountService accountService = new AccountService(hostName, userName, password);
-        //TimeZone GMT_TIMEZONE = TimeZone.getTimeZone("GMT");
-        //Date removed = domainService.isRemoved("alex_test2", "ROOT", DateUtil.parseDateString(GMT_TIMEZONE, "2013-12-18 19:44:48"));
-        Date removed = accountService.isRemoved(account.getAccountName(), domain.getPath(), account.getCreated());
+
+        Date created = account.getCreated();
+        if (created == null)
+        {
+            s_logger.info("Account[" + account.getAccountName() + "]  : remove is skipped because local create time is null.");
+            return null;
+        }
+
+        Date removed = isRemoved(account.getAccountName(), domain.getPath(), eventList);
         if (removed == null)
         {
-            s_logger.info("Account[" + account.getAccountName() + "]  : remove is skipped because remote does not have removal history or remote removal is before local creation.");
+            return null;
         }
+
+        if (removed.before(created))
+        {
+            s_logger.info("Account[" + account.getAccountName() + "]  : remove is skipped because remote remove time is before local create time.");
+            return null;
+        }
+
         return removed;
+    }
+
+    private Date isRemoved(String accountName, String domainPath, JSONArray eventList)
+    {
+        for (int idx = 0; idx < eventList.length(); idx++)
+        {
+            try
+            {
+                JSONObject jsonObject = BaseService.parseEventDescription(eventList.getJSONObject(idx));
+                String eventAccountName = BaseService.getAttrValue(jsonObject, "Account Name");
+                String eventDomainPath = BaseService.getAttrValue(jsonObject, "Domain Path");
+
+                if (eventAccountName == null)  continue;
+                if (!eventAccountName.equals(accountName))    continue;
+                if (eventDomainPath == null)    continue;
+                if (!eventDomainPath.equals(domainPath))    continue;
+
+                if (!BaseInterface.hasAttribute(jsonObject, "created"))
+                {
+                    s_logger.info("Account[" + accountName + "]  : remove is skipped because remove event created time is not available.");
+                    return null;
+                }
+
+                return BaseService.parseDateStr(BaseService.getAttrValue(jsonObject, "created"));
+            }
+            catch(Exception ex)
+            {
+                s_logger.error(ex.getStackTrace());
+                return null;
+            }
+        }
+
+        s_logger.info("Account[" + accountName + "]  : remove is skipped because removal history can't be found.");
+        return null;
     }
 }

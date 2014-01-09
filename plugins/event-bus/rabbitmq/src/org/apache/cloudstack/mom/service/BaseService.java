@@ -65,7 +65,7 @@ public class BaseService {
         return domainPath + "/";
     }*/
 
-    protected Date parseDateStr(String dateStr)
+    public static Date parseDateStr(String dateStr)
     {
         if (dateStr == null)    return null;
         Date created = null;
@@ -83,10 +83,12 @@ public class BaseService {
         return created;
     }
 
-    protected String getAttrValue(JSONObject obj, String attrName)
+    public static String getAttrValue(JSONObject obj, String attrName)
     {
         try
         {
+            if (!BaseInterface.hasAttribute(obj, attrName)) return null;
+
             return obj.getString(attrName);
         }
         catch(Exception ex)
@@ -97,7 +99,41 @@ public class BaseService {
         }
     }
 
-    protected JSONArray getJSONArray(String attrName, JSONObject jsonObject)
+    public static JSONObject parseEventDescription(JSONObject eventJson)
+    {
+        JSONObject jsonObject = new JSONObject();
+
+        String description = "";
+        try
+        {
+            description = eventJson.getString("description");
+
+        }
+        catch(Exception ex)
+        {
+            return jsonObject;
+        }
+
+        StringTokenizer tz = new StringTokenizer(description, ".,");
+        while(tz.hasMoreTokens())
+        {
+            try
+            {
+                String token = tz.nextToken();
+                String[] splitted = token.split(":");
+                if (splitted.length != 2)   continue;
+                jsonObject.put(splitted[0].trim(), splitted[1].trim());
+            }
+            catch(Exception ex)
+            {
+                continue;
+            }
+        }
+
+        return jsonObject;
+    }
+
+    /*protected JSONArray getJSONArray(String attrName, JSONObject jsonObject)
     {
         try
         {
@@ -109,7 +145,7 @@ public class BaseService {
             //throw new Exception("Failed to find json array for " + attrName);
             return null;
         }
-    }
+    }*/
 
     protected String getErrorText(JSONObject jsonObject)
     {
@@ -132,7 +168,7 @@ public class BaseService {
             int aIndex = 0;
             for(; aIndex < attrNames.length; aIndex++)
             {
-                String value = getAttrValue(obj, attrNames[aIndex]);
+                String value = BaseService.getAttrValue(obj, attrNames[aIndex]);
                 /*if (attrNames[aIndex].equals("path"))
                 {
                     value = arrangeDomainPath(value);
@@ -156,11 +192,11 @@ public class BaseService {
 
     protected JSONObject queryAsyncJob(JSONObject retJson) throws Exception
     {
-        String jobId = getAttrValue(retJson, "jobid");
+        String jobId = BaseService.getAttrValue(retJson, "jobid");
         String projectId = null;
         try
         {
-            projectId = getAttrValue(retJson, "projectid");
+            projectId = BaseService.getAttrValue(retJson, "projectid");
         }
         catch(Exception ex)
         {
@@ -213,39 +249,5 @@ public class BaseService {
         finally {
             apiInterface.logout();
         }
-    }
-
-    protected JSONObject parseEventDescription(JSONObject eventJson)
-    {
-        JSONObject jsonObject = new JSONObject();
-
-        String description = "";
-        try
-        {
-            description = eventJson.getString("description");
-
-        }
-        catch(Exception ex)
-        {
-            return jsonObject;
-        }
-
-        StringTokenizer tz = new StringTokenizer(description, ".,");
-        while(tz.hasMoreTokens())
-        {
-            try
-            {
-                String token = tz.nextToken();
-                String[] splitted = token.split(":");
-                if (splitted.length != 2)   continue;
-                jsonObject.put(splitted[0].trim(), splitted[1].trim());
-            }
-            catch(Exception ex)
-            {
-                continue;
-            }
-        }
-
-        return jsonObject;
     }
 }

@@ -9,8 +9,6 @@ import org.apache.cloudstack.mom.api_interface.AccountInterface;
 import org.apache.cloudstack.mom.api_interface.BaseInterface;
 import org.apache.log4j.Logger;
 
-import java.util.Date;
-
 public class AccountService extends BaseService {
 
     private static final Logger s_logger = Logger.getLogger(AccountService.class);
@@ -354,7 +352,7 @@ public class AccountService extends BaseService {
         }
     }
 
-    public Date isRemoved(String accountName, String domainPath, Date created)
+    /*public Date isRemoved(String accountName, String domainPath, Date created)
     {
         try
         {
@@ -382,5 +380,5 @@ public class AccountService extends BaseService {
             s_logger.error(ex.getStackTrace());
             return null;
         }
-    }
+    }*/
 }
