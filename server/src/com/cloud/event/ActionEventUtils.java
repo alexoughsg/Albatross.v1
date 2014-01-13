@@ -253,7 +253,7 @@ public class ActionEventUtils {
     private static String addDescription(String eventCategory, String eventType, String description)
     {
         if (!eventCategory.equals("ActionEvent"))   return description;
-        if (!eventType.endsWith(".CREATE") && !eventType.endsWith(".DELETE"))    return description;
+        if (!eventType.endsWith(".CREATE") && !eventType.endsWith(".DELETE") && !eventType.endsWith(".UPDATE"))    return description;
 
         Class entityKey = getEntityKey(eventType);
         if (entityKey == null)  return description;
@@ -264,11 +264,13 @@ public class ActionEventUtils {
 
         s_logger.info("description before addition : " + description);
 
+        String newEntityName = "";
+
         if (eventType.startsWith("DOMAIN."))
         {
             Domain domain = s_domainDao.findByUuidIncludingRemoved(entityUuid);
-            Domain parentDomain = s_domainDao.findByIdIncludingRemoved(domain.getParent());
             description += ", Domain Path:" + domain.getPath();
+            newEntityName = domain.getName();
         }
         else if (eventType.startsWith("ACCOUNT."))
         {
@@ -282,6 +284,7 @@ public class ActionEventUtils {
             {
                 description += ", Account Name:" + account.getAccountName() + ", Domain Path:" + domain.getPath();
             }
+            newEntityName = account.getAccountName();
         }
         else if (eventType.startsWith("USER."))
         {
@@ -296,6 +299,13 @@ public class ActionEventUtils {
             {
                 description += ", User Name:" + user.getUsername() + ", Account Name:" + account.getAccountName() + ", Domain Path:" + domain.getPath();
             }
+            newEntityName = user.getUsername();
+        }
+
+        if (eventType.endsWith(".UPDATE"))
+        {
+            String oldEntityName = (String)context.getContextParameter(entityUuid);
+            description += ", Old Entity Name:" + oldEntityName + ", New Entity Name:" + newEntityName;
         }
 
         s_logger.info("description after addition : " + description);

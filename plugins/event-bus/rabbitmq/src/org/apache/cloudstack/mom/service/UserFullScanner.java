@@ -324,6 +324,7 @@ public class UserFullScanner extends FullScanner {
                 String eventAccountName = (String)jsonObject.get("Account Name");
                 String eventDomainPath = BaseService.getAttrValue(jsonObject, "Domain Path");
                 String eventOldUserName = BaseService.getAttrValue(jsonObject, "Old Entity Name");
+                String eventNewUserName = BaseService.getAttrValue(jsonObject, "New Entity Name");
 
                 if (eventOldUserName == null)
                 {
@@ -332,6 +333,8 @@ public class UserFullScanner extends FullScanner {
                 }
                 else
                 {
+                    if (eventNewUserName == null)    continue;
+                    if (eventNewUserName.equals(eventOldUserName))    continue;
                     if (!eventOldUserName.equals(userName))    continue;
                 }
 

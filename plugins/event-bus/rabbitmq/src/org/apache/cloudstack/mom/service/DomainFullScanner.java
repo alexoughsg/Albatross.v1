@@ -290,6 +290,7 @@ public class DomainFullScanner extends FullScanner {
                 JSONObject jsonObject = BaseService.parseEventDescription(eventList.getJSONObject(idx));
                 String eventDomainPath = BaseService.getAttrValue(jsonObject, "Domain Path");
                 String eventOldDomainName = BaseService.getAttrValue(jsonObject, "Old Entity Name");
+                String eventNewDomainName = BaseService.getAttrValue(jsonObject, "New Entity Name");
 
                 if (eventOldDomainName == null)
                 {
@@ -298,6 +299,8 @@ public class DomainFullScanner extends FullScanner {
                 }
                 else
                 {
+                    if (eventNewDomainName == null)    continue;
+                    if (eventNewDomainName.equals(eventOldDomainName))    continue;
                     if (!eventOldDomainName.equals(domainName))    continue;
                     if (!eventDomainPath.replace(domainName, eventOldDomainName).equals(domainPath))    continue;
                 }
