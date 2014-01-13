@@ -142,7 +142,7 @@ public class FullScanner {
 
     }
 
-    protected Date isRemoteRemoved(Object object, JSONArray eventList)
+    protected Date isRemoteRemovedOrRenamed(Object object, JSONArray eventList)
     {
         return null;
     }
@@ -158,7 +158,7 @@ public class FullScanner {
         {
             if(exist(object, processedList))   continue;
 
-            Date removed = isRemoteRemoved(object, events);
+            Date removed = isRemoteRemovedOrRenamed(object, events);
             if (removed != null)
             {
                 remove(object, removed);

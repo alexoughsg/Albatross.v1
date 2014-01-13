@@ -285,7 +285,7 @@ public class UserFullScanner extends FullScanner {
     }
 
     @Override
-    protected Date isRemoteRemoved(Object object, JSONArray eventList)
+    protected Date isRemoteRemovedOrRenamed(Object object, JSONArray eventList)
     {
         UserVO user = (UserVO)object;
         AccountVO account = accountDao.findById(user.getAccountId());
@@ -298,22 +298,22 @@ public class UserFullScanner extends FullScanner {
             return null;
         }
 
-        Date removed = isRemoved(user.getUsername(), account.getAccountName(), domain.getPath(), eventList);
-        if (removed == null)
+        Date eventDate = isRemovedOrRenamed(user.getUsername(), account.getAccountName(), domain.getPath(), eventList);
+        if (eventDate == null)
         {
             return null;
         }
 
-        if (removed.before(created))
+        if (eventDate.before(created))
         {
-            s_logger.info("User[" + user.getUsername() + "]  : remove is skipped because remote remove time is before local create time.");
+            s_logger.info("User[" + user.getUsername() + "]  : remove is skipped because remote remove/rename event time is before local create time.");
             return null;
         }
 
-        return removed;
+        return eventDate;
     }
 
-    private Date isRemoved(String userName, String accountName, String domainPath, JSONArray eventList)
+    private Date isRemovedOrRenamed(String userName, String accountName, String domainPath, JSONArray eventList)
     {
         for (int idx = 0; idx < eventList.length(); idx++)
         {
@@ -323,9 +323,18 @@ public class UserFullScanner extends FullScanner {
                 String eventUserName = (String)jsonObject.get("User Name");
                 String eventAccountName = (String)jsonObject.get("Account Name");
                 String eventDomainPath = BaseService.getAttrValue(jsonObject, "Domain Path");
+                String eventOldUserName = BaseService.getAttrValue(jsonObject, "Old Entity Name");
 
-                if (eventUserName == null)  continue;
-                if (!eventUserName.equals(userName))    continue;
+                if (eventOldUserName == null)
+                {
+                    if (eventUserName == null)  continue;
+                    if (!eventUserName.equals(userName))    continue;
+                }
+                else
+                {
+                    if (!eventOldUserName.equals(userName))    continue;
+                }
+
                 if (eventAccountName == null)  continue;
                 if (!eventAccountName.equals(accountName))    continue;
                 if (eventDomainPath == null)    continue;
@@ -333,7 +342,7 @@ public class UserFullScanner extends FullScanner {
 
                 if (!BaseInterface.hasAttribute(jsonObject, "created"))
                 {
-                    s_logger.info("User[" + userName + "]  : remove is skipped because remove event created time is not available.");
+                    s_logger.info("User[" + userName + "]  : remove is skipped because remove/rename event created time is not available.");
                     return null;
                 }
 
@@ -346,7 +355,7 @@ public class UserFullScanner extends FullScanner {
             }
         }
 
-        s_logger.info("User[" + userName + "]  : remove is skipped because removal history can't be found.");
+        s_logger.info("User[" + userName + "]  : remove is skipped because remove/rename history can't be found.");
         return null;
     }
 }

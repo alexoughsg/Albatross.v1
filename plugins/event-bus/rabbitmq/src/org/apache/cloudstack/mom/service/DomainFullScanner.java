@@ -255,7 +255,7 @@ public class DomainFullScanner extends FullScanner {
     }
 
     @Override
-    protected Date isRemoteRemoved(Object object, JSONArray eventList)
+    protected Date isRemoteRemovedOrRenamed(Object object, JSONArray eventList)
     {
         DomainVO domain = (DomainVO)object;
 
@@ -266,22 +266,22 @@ public class DomainFullScanner extends FullScanner {
             return null;
         }
 
-        Date removed = isRemoved(domain.getName(), domain.getPath(), eventList);
-        if (removed == null)
+        Date eventDate = isRemovedOrRenamed(domain.getName(), domain.getPath(), eventList);
+        if (eventDate == null)
         {
             return null;
         }
 
-        if (removed.before(created))
+        if (eventDate.before(created))
         {
-            s_logger.info("Domain[" + domain.getName() + "]  : remove is skipped because remote remove time is before local create time.");
+            s_logger.info("Domain[" + domain.getName() + "]  : remove is skipped because remote remove/rename event time is before local create time.");
             return null;
         }
 
-        return removed;
+        return eventDate;
     }
 
-    private Date isRemoved(String domainName, String domainPath, JSONArray eventList)
+    private Date isRemovedOrRenamed(String domainName, String domainPath, JSONArray eventList)
     {
         for (int idx = 0; idx < eventList.length(); idx++)
         {
@@ -289,13 +289,22 @@ public class DomainFullScanner extends FullScanner {
             {
                 JSONObject jsonObject = BaseService.parseEventDescription(eventList.getJSONObject(idx));
                 String eventDomainPath = BaseService.getAttrValue(jsonObject, "Domain Path");
+                String eventOldDomainName = BaseService.getAttrValue(jsonObject, "Old Entity Name");
 
-                if (eventDomainPath == null)  continue;
-                if (!eventDomainPath.equals(domainPath))    continue;
+                if (eventOldDomainName == null)
+                {
+                    if (eventDomainPath == null)  continue;
+                    if (!eventDomainPath.equals(domainPath))    continue;
+                }
+                else
+                {
+                    if (!eventOldDomainName.equals(domainName))    continue;
+                    if (!eventDomainPath.replace(domainName, eventOldDomainName).equals(domainPath))    continue;
+                }
 
                 if (!BaseInterface.hasAttribute(jsonObject, "created"))
                 {
-                    s_logger.info("Domain[" + domainName + "]  : remove is skipped because remove event created time is not available.");
+                    s_logger.info("Domain[" + domainName + "]  : remove is skipped because remove/rename event created time is not available.");
                     return null;
                 }
 
@@ -308,7 +317,7 @@ public class DomainFullScanner extends FullScanner {
             }
         }
 
-        s_logger.info("Domain[" + domainName + "]  : remove is skipped because removal history can't be found.");
+        s_logger.info("Domain[" + domainName + "]  : remove is skipped because remove/rename history can't be found.");
         return null;
     }
 }
