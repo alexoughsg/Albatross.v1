@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Date;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -510,6 +511,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     private boolean doSetUserStatus(long userId, State state) {
         UserVO userForUpdate = _userDao.createForUpdate();
         userForUpdate.setState(state);
+        userForUpdate.setModified(new Date());
         return _userDao.update(Long.valueOf(userId), userForUpdate);
     }
 
@@ -518,6 +520,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         boolean success = false;
         AccountVO acctForUpdate = _accountDao.createForUpdate();
         acctForUpdate.setState(State.enabled);
+        acctForUpdate.setModified(new Date());
         acctForUpdate.setNeedsCleanup(false);
         success = _accountDao.update(Long.valueOf(accountId), acctForUpdate);
         return success;
@@ -532,6 +535,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
             } else if (account.getState().equals(State.enabled)) {
                 AccountVO acctForUpdate = _accountDao.createForUpdate();
                 acctForUpdate.setState(State.locked);
+                acctForUpdate.setModified(new Date());
                 success = _accountDao.update(Long.valueOf(accountId), acctForUpdate);
             } else {
                 if (s_logger.isInfoEnabled()) {
@@ -812,6 +816,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         } else {
             AccountVO acctForUpdate = _accountDao.createForUpdate();
             acctForUpdate.setState(State.disabled);
+            acctForUpdate.setModified(new Date());
             success = _accountDao.update(Long.valueOf(accountId), acctForUpdate);
 
             if (success) {
@@ -1086,6 +1091,9 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         if (secretKey != null) {
             user.setSecretKey(secretKey);
         }
+
+        user.setModified(new Date());
+        if (!currentUserName.equals(userName) && user.getInitialName() == null)  user.setInitialName(currentUserName);
 
         if (s_logger.isDebugEnabled()) {
             s_logger.debug("updating user with id: " + id);
@@ -1455,8 +1463,15 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @DB
-    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details) {
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details)
+    {
+        return updateAccount(account, newAccountName, newNetworkDomain, details, null);
+    }
 
+    @Override
+    @DB
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details, Date modified)
+    {
         Long accountId = account.getId();
         Long domainId = account.getDomainId();
         String accountName = account.getAccountName();
@@ -1494,6 +1509,17 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
                 acctForUpdate.setNetworkDomain(networkDomain);
             }
         }
+
+        if (modified == null)
+        {
+            acctForUpdate.setModified(new Date());
+        }
+        else
+        {
+            acctForUpdate.setModified(modified);
+        }
+
+        if (!accountName.equals(newAccountName) && acctForUpdate.getInitialName() == null)  acctForUpdate.setInitialName(accountName);
 
         final Account accountFinal = account;
         success = Transaction.execute(new TransactionCallback<Boolean>() {

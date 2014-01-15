@@ -154,11 +154,11 @@ public class DomainFullScanner extends FullScanner {
     protected void update(Object object, final JSONObject jsonObject, final Date modified)
     {
         DomainVO domain = (DomainVO)object;
-        domain.setModified(modified);
+        //domain.setModified(modified);
 
         String newDomainName = BaseService.getAttrValue(jsonObject, "name");
         String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
-        domainManager.updateDomain(domain, newDomainName, newNetworkDomain);
+        domainManager.updateDomain(domain, newDomainName, newNetworkDomain, modified);
         s_logger.info("Successfully updated a domain[" + domain.getName() + "]");
     }
 

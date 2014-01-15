@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.user;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -119,6 +120,8 @@ public interface AccountManager extends AccountService {
     Account updateAccount(UpdateAccountCmd cmd);
 
     boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details);
+
+    boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified);
 
     /**
      * Disables an account by accountName and domainId

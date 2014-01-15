@@ -10,9 +10,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.framework.events.EventSubscriber;
-import org.apache.cloudstack.mom.service.AccountFullScanner;
-import org.apache.cloudstack.mom.service.DomainFullScanner;
-import org.apache.cloudstack.mom.service.UserFullScanner;
+import org.apache.cloudstack.mom.service.DomainFullSyncProcessor;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -35,8 +33,8 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     protected UserDao userDao;
 
     protected String[][] regions = {
-            //{"10.88.90.82", "admin", "password"},
-            {"10.88.90.83", "admin", "password"},
+            //{"10.88.90.82", "admin", "password"},     // sandbox01
+            {"10.88.90.83", "admin", "password"},       // sandbox02
     };
 
 
@@ -95,13 +93,19 @@ public class MultiRegionSubscriber  implements EventSubscriber {
 
     public void fullScan()
     {
-        DomainFullScanner domainScanner = new DomainFullScanner();
+        /*DomainFullScanner domainScanner = new DomainFullScanner();
         domainScanner.refreshAll(regions);
 
         AccountFullScanner accountScanner = new AccountFullScanner();
         accountScanner.refreshAll(regions);
 
         UserFullScanner userScanner = new UserFullScanner();
-        userScanner.refreshAll(regions);
+        userScanner.refreshAll(regions);*/
+
+        for (String[] region : regions)
+        {
+            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region[0], region[1], region[2]);
+            syncProcessor.synchronize();
+        }
     }
 }

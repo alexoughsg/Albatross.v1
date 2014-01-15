@@ -32,6 +32,8 @@ public interface User extends OwnedBy, InternalIdentity {
 
     public Date getModified();
 
+    public void setModified(Date modified);
+
     public Date getRemoved();
 
     public String getUsername();
@@ -78,4 +80,7 @@ public interface User extends OwnedBy, InternalIdentity {
 
     boolean isDefault();
 
+    String getInitialName();
+
+    void setInitialName(String initialName);
 }

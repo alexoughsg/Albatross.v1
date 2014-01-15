@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.user;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -154,6 +155,12 @@ public class MockDomainManagerImpl extends ManagerBase implements DomainManager,
 
     @Override
     public boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain)
+    {
+        return false;
+    }
+
+    @Override
+    public boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain, Date modified)
     {
         return false;
     }

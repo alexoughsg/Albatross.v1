@@ -69,6 +69,10 @@ public class DomainResponse extends BaseResponse {
     @Param(description = "the timestamp when this domain was last modified")
     private Date modified;
 
+    @SerializedName(ApiConstants.INITIAL_NAME)
+    @Param(description = "the initial name of the domain")
+    private String initialName;
+
     public String getId() {
         return this.id;
     }
@@ -136,4 +140,12 @@ public class DomainResponse extends BaseResponse {
     public Date getModified() { return modified; }
 
     public void setModified(Date modified) { this.modified = modified; }
+
+    public String getInitialName() {
+        return initialName;
+    }
+
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
+    }
 }

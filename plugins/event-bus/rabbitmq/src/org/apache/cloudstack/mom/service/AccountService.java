@@ -26,9 +26,9 @@ public class AccountService extends BaseService {
         String jsonNetworkDomain = getAttrValue(accountJson, "networkdomain");
 
         if(!jsonAccountName.equals(accountName)) return false;
-        if(!jsonNetworkDomain.equals(networkDomain))    return false;
-
-        return true;
+        if (jsonNetworkDomain == null && networkDomain == null) return true;
+        if (jsonNetworkDomain == null || networkDomain == null) return false;
+        return (jsonNetworkDomain.equals(networkDomain));
     }
 
     @Override

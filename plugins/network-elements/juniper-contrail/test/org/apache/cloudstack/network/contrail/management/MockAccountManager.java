@@ -17,6 +17,7 @@
 
 package org.apache.cloudstack.network.contrail.management;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -315,6 +316,12 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
 
     @Override
     public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details)
+    {
+        return false;
+    }
+
+    @Override
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified)
     {
         return false;
     }

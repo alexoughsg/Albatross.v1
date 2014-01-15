@@ -79,6 +79,9 @@ public class DomainVO implements Domain {
     @Column(name = GenericDao.MODIFIED_COLUMN)
     private Date modified;
 
+    @Column(name = "initial_name")
+    private String initialName = null;
+
     public DomainVO() {
     }
 
@@ -233,5 +236,15 @@ public class DomainVO implements Domain {
     public Date getModified() { return modified; }
 
     public void setModified(Date modified) { this.modified = modified; }
+
+    @Override
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
+    }
+
+    @Override
+    public String getInitialName() {
+        return initialName;
+    }
 
 }

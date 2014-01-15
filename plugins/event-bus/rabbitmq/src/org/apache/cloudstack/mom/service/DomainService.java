@@ -25,14 +25,9 @@ public class DomainService extends BaseService {
 
         if(!jsonDomainName.equals(domainName)) return false;
 
-        if (jsonNetworkDomain != null || networkDomain != null)
-        {
-            if (jsonNetworkDomain == null && networkDomain != null) return false;
-            if (jsonNetworkDomain != null && networkDomain == null) return false;
-            if(!jsonNetworkDomain.equals(networkDomain))    return false;
-        }
-
-        return true;
+        if (jsonNetworkDomain == null && networkDomain == null) return false;
+        if (jsonNetworkDomain == null || networkDomain == null) return false;
+        return (jsonNetworkDomain.equals(networkDomain));
     }
 
     private String getParentPath(String domainPath)

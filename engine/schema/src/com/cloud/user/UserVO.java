@@ -100,6 +100,9 @@ public class UserVO implements User, Identity, InternalIdentity {
     @Column(name = GenericDao.MODIFIED_COLUMN)
     private Date modified;
 
+    @Column(name = "initial_name")
+    private String initialName = null;
+
     public UserVO() {
         this.uuid = UUID.randomUUID().toString();
     }
@@ -281,5 +284,16 @@ public class UserVO implements User, Identity, InternalIdentity {
 
     public Date getModified() { return modified; }
 
+    @Override
     public void setModified(Date modified) { this.modified = modified; }
+
+    @Override
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
+    }
+
+    @Override
+    public String getInitialName() {
+        return initialName;
+    }
 }

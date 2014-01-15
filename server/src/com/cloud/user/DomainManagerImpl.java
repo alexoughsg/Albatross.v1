@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Date;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
@@ -601,10 +602,19 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
     @DB
     public boolean updateDomain(final DomainVO domain, String newDomainName, String newNetworkDomain)
     {
+        return updateDomain(domain, newDomainName, newNetworkDomain, null);
+    }
+
+    @Override
+    @DB
+    public boolean updateDomain(final DomainVO domain, String newDomainName, String newNetworkDomain, Date modified)
+    {
         final Long domainId = domain.getId();
 
         final String domainName = newDomainName;
+        final String oldDomainName = domain.getName();
         final String networkDomain = newNetworkDomain;
+        final Date modifiedDate = modified;
 
         // domain name is unique in the cloud
         if (domainName != null) {
@@ -639,6 +649,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                     updateDomainChildren(domain, updatedDomainPath);
                     domain.setName(domainName);
                     domain.setPath(updatedDomainPath);
+                    if (!oldDomainName.equals(domainName) && domain.getInitialName() == null)  domain.setInitialName(oldDomainName);
                 }
 
                 if (networkDomain != null) {
@@ -648,6 +659,16 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                         domain.setNetworkDomain(networkDomain);
                     }
                 }
+
+                if (modifiedDate == null)
+                {
+                    domain.setModified(new Date());
+                }
+                else
+                {
+                    domain.setModified(modifiedDate);
+                }
+
                 boolean success = _domainDao.update(domainId, domain);
                 return success;
             }

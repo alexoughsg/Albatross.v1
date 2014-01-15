@@ -25,9 +25,12 @@ SET foreign_key_checks = 0;
 ALTER TABLE `cloud`.`disk_offering` ADD `cache_mode` VARCHAR( 16 ) DEFAULT 'none' COMMENT 'The disk cache mode to use for disks created with this offering';
 ALTER TABLE domain ADD created TIMESTAMP NULL;
 ALTER TABLE domain ADD modified TIMESTAMP NULL;
+ALTER TABLE domain ADD initial_name varchar(255) DEFAULT NULL;
 ALTER TABLE account ADD created TIMESTAMP NULL;
 ALTER TABLE account ADD modified TIMESTAMP NULL;
+ALTER TABLE account ADD initial_name varchar(255) DEFAULT NULL;
 ALTER TABLE user ADD modified TIMESTAMP NULL;
+ALTER TABLE user ADD initial_name varchar(255) DEFAULT NULL;
 
 DROP VIEW IF EXISTS `cloud`.`disk_offering_view`;
 CREATE VIEW `cloud`.`disk_offering_view` AS

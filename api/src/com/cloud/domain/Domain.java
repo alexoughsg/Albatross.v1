@@ -64,6 +64,10 @@ public interface Domain extends OwnedBy, Identity, InternalIdentity {
 
     Date getModified();
 
+    String getInitialName();
+
+    void setInitialName(String initialName);
+
     @Override
     public String getUuid();
 }

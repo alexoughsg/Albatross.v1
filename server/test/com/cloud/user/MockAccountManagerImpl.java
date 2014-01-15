@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.user;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -105,6 +106,12 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
 
     @Override
     public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details)
+    {
+        return false;
+    }
+
+    @Override
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified)
     {
         return false;
     }

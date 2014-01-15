@@ -252,6 +252,10 @@ public class AccountResponse extends BaseResponse implements ResourceLimitAndCou
     @Param(description = "the timestamp when this account was last modified")
     private Date modified;
 
+    @SerializedName(ApiConstants.INITIAL_NAME)
+    @Param(description = "the initial name of the domain")
+    private String initialName;
+
     @Override
     public String getObjectId() {
         return id;
@@ -505,4 +509,12 @@ public class AccountResponse extends BaseResponse implements ResourceLimitAndCou
     public void setCreated(Date created) { this.created = created; }
 
     public void setModified(Date modified) { this.modified = modified; }
+
+    public String getInitialName() {
+        return initialName;
+    }
+
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
+    }
 }

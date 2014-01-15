@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.user;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -49,4 +50,6 @@ public interface DomainManager extends DomainService {
     Domain updateDomain(UpdateDomainCmd cmd);
 
     boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain);
+
+    boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain, Date modified);
 }

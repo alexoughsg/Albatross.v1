@@ -65,4 +65,7 @@ public interface Account extends ControlledEntity, InternalIdentity, Identity {
 
     boolean isDefault();
 
+    String getInitialName();
+
+    void setInitialName(String initialName);
 }
