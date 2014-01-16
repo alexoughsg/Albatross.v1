@@ -4,6 +4,7 @@ import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.configuration.ResourceLimit;
 import com.cloud.configuration.dao.ResourceCountDao;
+import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.DomainManager;
@@ -87,6 +88,22 @@ public class DomainFullScanner extends FullScanner {
         return path;
     }
 
+    private void delete(DomainVO domain, Date removed)
+    {
+        boolean cleanup = false;
+        domain.setRemoved(removed);
+        domainManager.deleteDomain(domain, cleanup);
+        s_logger.info("Successfully removed a domain[" + domain.getName() + "]");
+    }
+
+    private void deactivate(DomainVO domain, Date removed)
+    {
+        domain.setState(Domain.State.Inactive);
+        domain.setModified(removed);
+        domainDao.update(domain.getId(), domain);
+        s_logger.info("Successfully deactivated a domain[" + domain.getName() + "]");
+    }
+
     @Override
     protected DomainVO find(JSONObject jsonObject, List localList)
     {
@@ -167,10 +184,8 @@ public class DomainFullScanner extends FullScanner {
     {
         DomainVO domain = (DomainVO)object;
 
-        boolean cleanup = false;
-        domain.setRemoved(removed);
-        domainManager.deleteDomain(domain, cleanup);
-        s_logger.info("Successfully removed a domain[" + domain.getName() + "]");
+        //delete(domain, removed);
+        deactivate(domain, removed);
     }
 
     @Override

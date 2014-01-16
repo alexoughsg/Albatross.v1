@@ -122,6 +122,9 @@ public class UserAccountJoinVO extends BaseViewVO implements InternalIdentity, I
     @Column(name = "default")
     boolean isDefault;
 
+    @Column(name = "initial_name")
+    private String initialName = null;
+
     public UserAccountJoinVO() {
     }
 
@@ -241,5 +244,9 @@ public class UserAccountJoinVO extends BaseViewVO implements InternalIdentity, I
 
     public boolean isDefault() {
         return isDefault;
+    }
+
+    public String getInitialName() {
+        return initialName;
     }
 }

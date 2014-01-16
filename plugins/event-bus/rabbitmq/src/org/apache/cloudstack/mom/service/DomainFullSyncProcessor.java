@@ -420,7 +420,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         if (remoteIdx < 0)  return false;
 
         JSONObject remoteJson = remoteArray.getJSONObject(remoteIdx);*/
-        JSONObject remoteJson = findRemote(domain);
+        JSONObject remoteJson = findRemoteByInitialName(domain);
         if (remoteJson == null) return false;
 
         // synchronize the attributes

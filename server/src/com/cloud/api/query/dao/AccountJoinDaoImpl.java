@@ -68,6 +68,7 @@ public class AccountJoinDaoImpl extends GenericDaoBase<AccountJoinVO, Long> impl
         accountResponse.setIsDefault(account.isDefault());
         accountResponse.setCreated(account.getCreated());
         accountResponse.setModified(account.getModified());
+        accountResponse.setInitialName(account.getInitialName());
 
         // get network stat
         accountResponse.setBytesReceived(account.getBytesReceived());
