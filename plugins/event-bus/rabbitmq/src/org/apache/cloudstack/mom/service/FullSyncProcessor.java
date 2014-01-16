@@ -13,11 +13,12 @@ import java.util.TimeZone;
 public abstract class FullSyncProcessor {
 
     protected List<DomainVO> localList;
+    protected List<JSONObject> remoteList;
     protected JSONArray remoteArray;
-    protected List<JSONObject> remoteListForSearch;
+    //protected List<JSONObject> remoteListForSearch;
 
     protected List<DomainVO> processedLocalList = new ArrayList<DomainVO>();
-    protected List<Integer> processedRemoteList = new ArrayList<Integer>();
+    protected List<JSONObject> processedRemoteList = new ArrayList<JSONObject>();
 
     protected Date getDate(JSONObject jsonObject, String attrName) throws Exception
     {
@@ -50,8 +51,8 @@ public abstract class FullSyncProcessor {
         return localList;
     }
 
-    public JSONArray getUnresolvedRemotes()
+    public List<JSONObject> getUnresolvedRemotes()
     {
-        return remoteArray;
+        return remoteList;
     }
 }

@@ -32,6 +32,12 @@ ALTER TABLE account ADD initial_name varchar(255) DEFAULT NULL;
 ALTER TABLE user ADD modified TIMESTAMP NULL;
 ALTER TABLE user ADD initial_name varchar(255) DEFAULT NULL;
 
+UPDATE domain SET created = UTC_TIMESTAMP() where created IS NULL;
+UPDATE domain SET modified = UTC_TIMESTAMP() where modified IS NULL;
+UPDATE account SET created = UTC_TIMESTAMP() where created IS NULL;
+UPDATE account SET modified = UTC_TIMESTAMP() where modified IS NULL;
+UPDATE user SET modified = UTC_TIMESTAMP() where modified IS NULL;
+
 DROP VIEW IF EXISTS `cloud`.`disk_offering_view`;
 CREATE VIEW `cloud`.`disk_offering_view` AS
     select
@@ -236,6 +242,7 @@ ALTER VIEW `cloud`.`user_view` AS
         user.created,
         user.modified,
         user.removed,
+        user.initial_name,
         user.timezone,
         user.registration_token,
         user.is_registered,
@@ -276,6 +283,7 @@ CREATE VIEW `cloud`.`account_view` AS
         account.created,
         account.modified,
         account.removed,
+        account.initial_name,
         account.cleanup_needed,
         account.network_domain,
         account.default,
