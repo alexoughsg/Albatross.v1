@@ -106,6 +106,46 @@ public class DomainService extends BaseService {
         }
     }
 
+    public JSONObject findDomain(int level, String name, String path)
+    {
+        this.apiInterface = new DomainInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+            JSONObject domainJson = this.apiInterface.findDomain(level, name, path);
+            s_logger.info("Successfully found a domain[" + name + "] in level[" + level + "]");
+            return domainJson;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to find domain list", ex);
+            return null;
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
+    public JSONArray listChildren(String parentDomainId, boolean isRecursive)
+    {
+        this.apiInterface = new DomainInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+            JSONArray domainArray = this.apiInterface.listChildDomains(parentDomainId, isRecursive);
+            s_logger.info("Successfully found domain list");
+            return domainArray;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to find domain list", ex);
+            return new JSONArray();
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
     public boolean create(Domain domain, String oldDomainName)
     {
         JSONObject resJson = create(domain.getName(), domain.getPath(), domain.getNetworkDomain());

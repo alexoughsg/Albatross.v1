@@ -1,8 +1,6 @@
 package org.apache.cloudstack.mom.service;
 
-import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
-import com.cloud.domain.DomainVO;
 import com.cloud.utils.DateUtil;
 
 import java.util.ArrayList;
@@ -12,12 +10,12 @@ import java.util.TimeZone;
 
 public abstract class FullSyncProcessor {
 
-    protected List<DomainVO> localList;
-    protected List<JSONObject> remoteList;
-    protected JSONArray remoteArray;
-    //protected List<JSONObject> remoteListForSearch;
+    protected String hostName;
+    protected String userName;
+    protected String password;
 
-    protected List<DomainVO> processedLocalList = new ArrayList<DomainVO>();
+    protected JSONObject remoteParent;
+    protected List<JSONObject> remoteList;
     protected List<JSONObject> processedRemoteList = new ArrayList<JSONObject>();
 
     protected Date getDate(JSONObject jsonObject, String attrName) throws Exception
@@ -36,8 +34,27 @@ public abstract class FullSyncProcessor {
         }
     }
 
+    protected void expungeProcessedRemotes()
+    {
+        for (JSONObject remoteJson : processedRemoteList)
+        {
+            if (!remoteList.contains(remoteJson))    continue;
+            remoteList.remove(remoteJson);
+        }
+
+        //processedRemoteList.clear();
+    }
+
+    abstract protected Object create(JSONObject jsonObject, final Date created);
+
     abstract protected void synchronizeByLocal();
     abstract protected void synchronizeByRemote();
+
+    abstract public void arrangeLocalResourcesToBeRemoved(FullSyncProcessor syncProcessor);
+    abstract public void arrangeRemoteResourcesToBeCreated(FullSyncProcessor syncProcessor);
+
+    abstract public void createRemoteResourcesInLocal();
+    abstract public void removeLocalResources();
 
     public void synchronize()
     {
@@ -46,13 +63,4 @@ public abstract class FullSyncProcessor {
         synchronizeByRemote();
     }
 
-    public List<DomainVO> getUnresolvedlocals()
-    {
-        return localList;
-    }
-
-    public List<JSONObject> getUnresolvedRemotes()
-    {
-        return remoteList;
-    }
 }

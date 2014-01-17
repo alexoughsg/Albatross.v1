@@ -1,5 +1,7 @@
 package org.apache.cloudstack.mom.rabbitmq;
 
+import com.cloud.domain.Domain;
+import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.user.dao.UserDao;
@@ -14,6 +16,8 @@ import org.apache.cloudstack.mom.service.DomainFullSyncProcessor;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 
@@ -93,19 +97,60 @@ public class MultiRegionSubscriber  implements EventSubscriber {
 
     public void fullScan()
     {
-        /*DomainFullScanner domainScanner = new DomainFullScanner();
-        domainScanner.refreshAll(regions);
+        fullDomainScan();
+    }
 
-        AccountFullScanner accountScanner = new AccountFullScanner();
-        accountScanner.refreshAll(regions);
+    protected void fullDomainScan()
+    {
+        List<DomainVO> localList = new ArrayList<DomainVO>();
+        DomainVO root = domainDao.findDomainByPath("/");
+        localList.add(root);
+        fullDomainScan(localList);
+    }
 
-        UserFullScanner userScanner = new UserFullScanner();
-        userScanner.refreshAll(regions);*/
+    protected void fullDomainScan(List<DomainVO> localList)
+    {
+        for(DomainVO domain : localList)
+        {
+            if (domain.getState().equals(Domain.State.Inactive))    continue;
+
+            fullDomainScan(domain);
+
+            // recursive call
+            List<DomainVO> childrenList = domainDao.findImmediateChildrenForParent(domain.getId());
+            fullDomainScan(childrenList);
+        }
+    }
+
+    protected void fullDomainScan(DomainVO domain)
+    {
+        List<DomainFullSyncProcessor> syncProcessors = new ArrayList<DomainFullSyncProcessor>();
 
         for (String[] region : regions)
         {
-            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region[0], region[1], region[2]);
+            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region[0], region[1], region[2], domain.getId());
             syncProcessor.synchronize();
+
+            syncProcessors.add(syncProcessor);
+        }
+
+        // arrange the left & processed resources
+        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
+        {
+            DomainFullSyncProcessor first = syncProcessors.get(idx);
+            DomainFullSyncProcessor second = syncProcessors.get(idx+1);
+            first.arrangeLocalResourcesToBeRemoved(second);
+            second.arrangeLocalResourcesToBeRemoved(first);
+            first.arrangeRemoteResourcesToBeCreated(second);
+            second.arrangeRemoteResourcesToBeCreated(first);
+        }
+
+        // create or remove unprocessed resources
+        for(int idx = 0; idx < syncProcessors.size(); idx++)
+        {
+            DomainFullSyncProcessor processor = syncProcessors.get(idx);
+            processor.createRemoteResourcesInLocal();
+            processor.removeLocalResources();
         }
     }
 }
