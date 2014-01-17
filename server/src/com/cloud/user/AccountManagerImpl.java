@@ -549,11 +549,18 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     }
 
     @Override
-    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller) {
+    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller)
+    {
+        return deleteAccount(account, callerUserId, caller, null);
+    }
+
+    @Override
+    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller, Date removed)
+    {
         long accountId = account.getId();
 
         // delete the account record
-        if (!_accountDao.remove(accountId)) {
+        if (!_accountDao.remove(accountId, removed)) {
             s_logger.error("Unable to delete account " + accountId);
             return false;
         }
@@ -801,7 +808,15 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     }
 
     @Override
-    public boolean disableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException {
+    public boolean disableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException
+    {
+        return disableAccount(accountId, null);
+    }
+
+    @Override
+    public boolean disableAccount(long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException
+    {
+
         boolean success = false;
         if (accountId <= 2) {
             if (s_logger.isInfoEnabled()) {
@@ -816,7 +831,14 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         } else {
             AccountVO acctForUpdate = _accountDao.createForUpdate();
             acctForUpdate.setState(State.disabled);
-            acctForUpdate.setModified(new Date());
+            if (modified == null)
+            {
+                acctForUpdate.setModified(new Date());
+            }
+            else
+            {
+                acctForUpdate.setModified(modified);
+            }
             success = _accountDao.update(Long.valueOf(accountId), acctForUpdate);
 
             if (success) {
@@ -1465,12 +1487,12 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
     @DB
     public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details)
     {
-        return updateAccount(account, newAccountName, newNetworkDomain, details, null);
+        return updateAccount(account, newAccountName, newNetworkDomain, details, null, null);
     }
 
     @Override
     @DB
-    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details, Date modified)
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details, Date modified, Account.State state)
     {
         Long accountId = account.getId();
         Long domainId = account.getDomainId();
@@ -1517,6 +1539,11 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         else
         {
             acctForUpdate.setModified(modified);
+        }
+
+        if (state != null)
+        {
+            acctForUpdate.setState(state);
         }
 
         if (!accountName.equals(newAccountName) && acctForUpdate.getInitialName() == null)  acctForUpdate.setInitialName(accountName);
@@ -1779,8 +1806,13 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
 
     @Override
     @DB
-    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details,
-        final String uuid) {
+    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details, final String uuid)
+    {
+        return createAccount(accountName, accountType, domainId, networkDomain, details, uuid, null, null);
+    }
+
+    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details, final String uuid, final Date created, final State state)
+    {
         // Validate domain
         Domain domain = _domainMgr.getDomain(domainId);
         if (domain == null) {
@@ -1824,7 +1856,16 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         return Transaction.execute(new TransactionCallback<AccountVO>() {
             @Override
             public AccountVO doInTransaction(TransactionStatus status) {
-                AccountVO account = _accountDao.persist(new AccountVO(accountName, domainId, networkDomain, accountType, uuid));
+                AccountVO newAccount = new AccountVO(accountName, domainId, networkDomain, accountType, uuid);
+                if (created != null)
+                {
+                    newAccount.setCreated(created);
+                }
+                if (state != null)
+                {
+                    newAccount.setState(state);
+                }
+                AccountVO account = _accountDao.persist(newAccount);
 
                 if (account == null) {
                     throw new CloudRuntimeException("Failed to create account name " + accountName + " in domain id=" + domainId);

@@ -20,6 +20,10 @@ public class AccountInterface extends BaseInterface {
         String paramStr = "command=listAccounts&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         if (domainId != null)   paramStr += "&domainId=" + domainId;
         JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseInterface.hasAttribute(retJson, "account"))
+        {
+            return new JSONArray();
+        }
 
         if (retJson.length() == 0)  return new JSONArray();
         if (domainId == null)   return (JSONArray)retJson.get("account");

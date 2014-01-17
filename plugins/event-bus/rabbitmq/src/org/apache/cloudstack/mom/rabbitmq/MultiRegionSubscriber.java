@@ -12,6 +12,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.framework.events.EventSubscriber;
+import org.apache.cloudstack.mom.service.AccountFullSyncProcessor;
 import org.apache.cloudstack.mom.service.DomainFullSyncProcessor;
 import org.apache.log4j.Logger;
 
@@ -115,6 +116,7 @@ public class MultiRegionSubscriber  implements EventSubscriber {
             if (domain.getState().equals(Domain.State.Inactive))    continue;
 
             fullDomainScan(domain);
+            fullAccountScan(domain);
 
             // recursive call
             List<DomainVO> childrenList = domainDao.findImmediateChildrenForParent(domain.getId());
@@ -149,6 +151,39 @@ public class MultiRegionSubscriber  implements EventSubscriber {
         for(int idx = 0; idx < syncProcessors.size(); idx++)
         {
             DomainFullSyncProcessor processor = syncProcessors.get(idx);
+            processor.createRemoteResourcesInLocal();
+            processor.removeLocalResources();
+        }
+    }
+
+
+    protected void fullAccountScan(DomainVO domain)
+    {
+        List<AccountFullSyncProcessor> syncProcessors = new ArrayList<AccountFullSyncProcessor>();
+
+        for (String[] region : regions)
+        {
+            AccountFullSyncProcessor syncProcessor = new AccountFullSyncProcessor(region[0], region[1], region[2], domain.getId());
+            syncProcessor.synchronize();
+
+            syncProcessors.add(syncProcessor);
+        }
+
+        // arrange the left & processed resources
+        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
+        {
+            AccountFullSyncProcessor first = syncProcessors.get(idx);
+            AccountFullSyncProcessor second = syncProcessors.get(idx+1);
+            first.arrangeLocalResourcesToBeRemoved(second);
+            second.arrangeLocalResourcesToBeRemoved(first);
+            first.arrangeRemoteResourcesToBeCreated(second);
+            second.arrangeRemoteResourcesToBeCreated(first);
+        }
+
+        // create or remove unprocessed resources
+        for(int idx = 0; idx < syncProcessors.size(); idx++)
+        {
+            AccountFullSyncProcessor processor = syncProcessors.get(idx);
             processor.createRemoteResourcesInLocal();
             processor.removeLocalResources();
         }

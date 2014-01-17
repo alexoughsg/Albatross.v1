@@ -45,12 +45,17 @@ public interface AccountManager extends AccountService {
      * @return true if disable was successful, false otherwise
      */
     boolean disableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException;
+    public boolean disableAccount(long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException;
 
     boolean deleteAccount(AccountVO account, long callerUserId, Account caller);
+    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller, Date removed);
 
     Long checkAccessAndSpecifyAuthority(Account caller, Long zoneId);
 
     Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid);
+
+    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details, final String uuid, final Date created, final Account.State state);
+
 
     /**
      * Logs out a user
@@ -121,7 +126,7 @@ public interface AccountManager extends AccountService {
 
     boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details);
 
-    boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified);
+    boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified, Account.State state);
 
     /**
      * Disables an account by accountName and domainId

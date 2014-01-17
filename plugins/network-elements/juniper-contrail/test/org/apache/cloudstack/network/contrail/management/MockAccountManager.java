@@ -249,6 +249,11 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public boolean deleteAccount(AccountVO arg0, long arg1, Account arg2, Date arg3){
+        return true;
+    }
+
+    @Override
     public boolean deleteUser(DeleteUserCmd arg0) {
         // TODO Auto-generated method stub
         return false;
@@ -257,6 +262,11 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     @Override
     public boolean deleteUserAccount(long arg0) {
         // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean disableAccount(long arg0, Date arg1) throws ConcurrentOperationException, ResourceUnavailableException {
         return false;
     }
 
@@ -321,7 +331,7 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
-    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified)
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified, Account.State state)
     {
         return false;
     }
@@ -344,7 +354,14 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
-    public Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid) {
+    public Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid)
+    {
+        return createAccount(accountName, accountType, domainId, networkDomain, details, uuid, null, null);
+    }
+
+    @Override
+    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details, final String uuid, final Date created, final Account.State state)
+    {
         final AccountVO account = new AccountVO(accountName, domainId, networkDomain, accountType, uuid);
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override

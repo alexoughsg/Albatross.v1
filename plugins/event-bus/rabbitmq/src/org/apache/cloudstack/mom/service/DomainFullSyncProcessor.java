@@ -306,7 +306,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         return null;
     }
 
-    @Override
+    //@Override
     protected Object create(JSONObject jsonObject, final Date created)
     {
         // find parent domain id from the domain path

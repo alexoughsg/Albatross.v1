@@ -111,7 +111,7 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
-    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified)
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Date modified, Account.State state)
     {
         return false;
     }
@@ -195,6 +195,11 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     @Override
     public boolean disableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException {
         // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean disableAccount(long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException {
         return false;
     }
 
@@ -330,9 +335,18 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller, Date arg3){
+        return true;
+    }
+
+    @Override
     public Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid) {
         // TODO Auto-generated method stub
         return null;
     }
 
+    @Override
+    public AccountVO createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid, Date created, Account.State state){
+        return null;
+    }
 }

@@ -45,8 +45,6 @@ public abstract class FullSyncProcessor {
         //processedRemoteList.clear();
     }
 
-    abstract protected Object create(JSONObject jsonObject, final Date created);
-
     abstract protected void synchronizeByLocal();
     abstract protected void synchronizeByRemote();
 
