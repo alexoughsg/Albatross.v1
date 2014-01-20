@@ -20,14 +20,12 @@ public class LocalUserManager {
 
     private static final Logger s_logger = Logger.getLogger(LocalUserManager.class);
 
-    //protected UserDao userDao;
     protected AccountDao accountDao;
     protected DomainDao domainDao;
     private AccountManager accountManager;
 
     public LocalUserManager()
     {
-        //this.userDao = ComponentContext.getComponent(UserDao.class);
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.accountManager = ComponentContext.getComponent(AccountManager.class);
@@ -64,9 +62,7 @@ public class LocalUserManager {
             throw new Exception("Failed to create a user because its account[" + accountName + "] cannot be found");
         }
 
-        //long accountId = account.getId();
         String userName = BaseService.getAttrValue(jsonObject, "username");
-        //String password = getAttrValueInJson(jsonObject, "passowrd");
         String password = TEMP_PASSWORD;
         String firstName = BaseService.getAttrValue(jsonObject, "firstname");
         String lastName = BaseService.getAttrValue(jsonObject, "lastname");
@@ -105,10 +101,6 @@ public class LocalUserManager {
     public void lock(Object object, Date modified)
     {
         UserVO user = (UserVO)object;
-        /*UserVO userForUpdate = userDao.createForUpdate();
-        userForUpdate.setState(Account.State.locked);
-        userForUpdate.setModified(modified);
-        userDao.update(Long.valueOf(user.getId()), userForUpdate);*/
         accountManager.lockUser(user.getId(), modified);
         s_logger.info("Successfully locked a user[" + user.getUsername() + "]");
     }
@@ -116,10 +108,6 @@ public class LocalUserManager {
     public void disable(Object object, Date modified)
     {
         UserVO user = (UserVO)object;
-        /*UserVO userForUpdate = userDao.createForUpdate();
-        userForUpdate.setState(Account.State.disabled);
-        userForUpdate.setModified(modified);
-        userDao.update(Long.valueOf(user.getId()), userForUpdate);*/
         accountManager.disableUser(user.getId(), modified);
         s_logger.info("Successfully disabled a user[" + user.getUsername() + "]");
     }
@@ -127,10 +115,6 @@ public class LocalUserManager {
     public void enable(Object object, Date modified)
     {
         UserVO user = (UserVO)object;
-        /*UserVO userForUpdate = userDao.createForUpdate();
-        userForUpdate.setState(Account.State.enabled);
-        userForUpdate.setModified(modified);
-        userDao.update(Long.valueOf(user.getId()), userForUpdate);*/
         accountManager.enableUser(user.getId(), modified);
         s_logger.info("Successfully enabled a user[" + user.getUsername() + "]");
     }
@@ -138,7 +122,6 @@ public class LocalUserManager {
     public void remove(Object object, Date removed)
     {
         UserVO user = (UserVO)object;
-        //userDao.remove(user.getId(), removed);
         accountManager.deleteUser(user.getId(), removed);
         s_logger.info("Successfully removed a user[" + user.getUsername() + "]");
     }

@@ -23,7 +23,6 @@ public class LocalAccountManager {
 
     public LocalAccountManager()
     {
-        //this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.accountManager = ComponentContext.getComponent(AccountManager.class);
     }
@@ -49,17 +48,6 @@ public class LocalAccountManager {
         {
             throw new Exception("Failed to create a account because its domain[" + domainPath + "] cannot be found");
         }
-
-        // find account details
-        /*Map<String, String> details = null;
-        try
-        {
-            details = (Map<String, String>)jsonObject.get("details");
-        }
-        catch(Exception ex)
-        {
-            details = null;
-        }*/
 
         Long domainId = domain.getId();
         String accountName = BaseService.getAttrValue(jsonObject, "name");
@@ -102,47 +90,29 @@ public class LocalAccountManager {
     public void lock(Object object, Date modified)
     {
         AccountVO account = (AccountVO)object;
-        /*account.setState(Account.State.locked);
-        account.setModified(modified);
-        accountDao.update(account.getId(), account);*/
         accountManager.lockAccount(account.getAccountName(), account.getDomainId(), account.getId(), modified);
         s_logger.info("Successfully locked an account[" + account.getAccountName() + "]");
     }
 
-    public void disable(Object object, Date modified)
+    public void disable(Object object, Date modified) throws Exception
     {
         AccountVO account = (AccountVO)object;
-
-        try
-        {
-            //doDisableAccount(account.getId());
-            accountManager.disableAccount(account.getId(), modified);
-            s_logger.info("Successfully disabled an account[" + account.getAccountName() + "]");
-        }
-        catch(Exception ex)
-        {
-            s_logger.error("Failed to disable vms", ex);
-        }
+        accountManager.disableAccount(account.getId(), modified);
+        s_logger.info("Successfully disabled an account[" + account.getAccountName() + "]");
     }
 
     public void enable(Object object, Date modified)
     {
         AccountVO account = (AccountVO)object;
-        /*account.setState(Account.State.enabled);
-        account.setModified(modified);
-        account.setNeedsCleanup(false);
-        accountDao.update(account.getId(), account);*/
         accountManager.enableUser(account.getId(), modified);
         s_logger.info("Successfully enabled an account[" + account.getAccountName() + "]");
     }
 
     public void remove(Object object, Date removed)
     {
-        AccountVO account = (AccountVO)object;
-        //account.setRemoved(removed);
-
         long callerUserId = 0;
         Account caller = null;
+        AccountVO account = (AccountVO)object;
         accountManager.deleteAccount(account, callerUserId, caller, removed);
         s_logger.info("Successfully removed an account[" + account.getAccountName() + "]");
     }

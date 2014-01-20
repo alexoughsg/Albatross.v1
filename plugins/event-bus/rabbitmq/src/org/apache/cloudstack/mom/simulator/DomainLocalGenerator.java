@@ -2,16 +2,28 @@ package org.apache.cloudstack.mom.simulator;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
+import com.cloud.domain.dao.DomainDao;
+import com.cloud.utils.component.ComponentContext;
 import org.apache.cloudstack.mom.service.DomainFullScanner;
+import org.apache.cloudstack.mom.service.LocalDomainManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-public class DomainLocalGenerator extends DomainFullScanner {
+public class DomainLocalGenerator extends LocalGenerator {
 
     private static final Logger s_logger = Logger.getLogger(DomainFullScanner.class);
+
+    private DomainDao domainDao;
+    private LocalDomainManager localDomainManager;
+
+    public DomainLocalGenerator()
+    {
+        this.domainDao = ComponentContext.getComponent(DomainDao.class);
+        this.localDomainManager = new LocalDomainManager();
+    }
 
     protected DomainVO randSelect(boolean includeRoot)
     {
@@ -47,18 +59,16 @@ public class DomainLocalGenerator extends DomainFullScanner {
             domainJson.put("parentdomainname", parentDomain.getName());
             domainJson.put("name", domainName);
             domainJson.put("networkdomain", networkDomain);
+
+            DomainVO domain = (DomainVO)localDomainManager.create(domainJson, parentDomain.getPath(), created);
+            s_logger.info("Successfully created domain[" + domain.getName() + "]");
+            return domain;
         }
         catch (Exception ex)
         {
-            s_logger.error("Failed to set json attributes", ex);
+            s_logger.error("Failed to create d domain", ex);
             return null;
         }
-
-        DomainVO domain = (DomainVO)super.create(domainJson, created);
-        s_logger.info("Successfully created domain[" + domain.getName() + "]");
-
-        domain = domainDao.findById(domain.getId());
-        return domain;
     }
 
     public DomainVO update(DomainVO domain)
@@ -77,17 +87,14 @@ public class DomainLocalGenerator extends DomainFullScanner {
         {
             domainJson.put("name", newDomainName);
             domainJson.put("networkdomain", newNetworkDomain);
+            localDomainManager.update(domain, domainJson, modified);
+            return domain;
         }
         catch (Exception ex)
         {
             s_logger.error("Failed to set json attributes", ex);
             return null;
         }
-
-        super.update(domain, domainJson, modified);
-        s_logger.info("Successfully updated domain[" + domain.getName() + "]");
-
-        return domain;
     }
 
     public DomainVO remove(DomainVO domain)
@@ -97,7 +104,7 @@ public class DomainLocalGenerator extends DomainFullScanner {
         // select a random domain
         if(domain == null)  domain = randSelect(false);
 
-        super.remove(domain, removed);
+        localDomainManager.remove(domain, removed);
         s_logger.info("Successfully removed domain[" + domain.getName() + "]");
 
         return domain;

@@ -52,19 +52,6 @@ public class BaseService {
     }
 
 
-    /*protected String arrangeDomainPath(String domainPath)
-    {
-        // In 'createDomainResponse' of server.com.cloud.api.ApiResponseHelper as below,
-        // the domain path is changed, so we need to revert back what is same style with what returns domainVO.getPath()
-        //  StringBuilder domainPath = new StringBuilder("ROOT");
-        //  (domainPath.append(domain.getPath())).deleteCharAt(domainPath.length() - 1);
-
-        domainPath = domainPath.replace("ROOT", "");
-        if (domainPath.endsWith("/"))   return domainPath;
-
-        return domainPath + "/";
-    }*/
-
     public static Date parseDateStr(String dateStr)
     {
         if (dateStr == null)    return null;
@@ -133,20 +120,6 @@ public class BaseService {
         return jsonObject;
     }
 
-    /*protected JSONArray getJSONArray(String attrName, JSONObject jsonObject)
-    {
-        try
-        {
-            return jsonObject.getJSONArray(attrName);
-        }
-        catch(Exception ex)
-        {
-            s_logger.error("Failed to find json array for " + attrName);
-            //throw new Exception("Failed to find json array for " + attrName);
-            return null;
-        }
-    }*/
-
     protected String getErrorText(JSONObject jsonObject)
     {
         try
@@ -169,14 +142,6 @@ public class BaseService {
             for(; aIndex < attrNames.length; aIndex++)
             {
                 String value = BaseService.getAttrValue(obj, attrNames[aIndex]);
-                /*if (attrNames[aIndex].equals("path"))
-                {
-                    value = arrangeDomainPath(value);
-                }
-                if(!value.equals(attrValues[aIndex]))
-                {
-                    break;
-                }*/
                 if(!BaseService.compareDomainPath(value, attrValues[aIndex]))
                 {
                     break;

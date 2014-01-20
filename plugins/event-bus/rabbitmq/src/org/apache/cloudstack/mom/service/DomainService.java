@@ -280,40 +280,4 @@ public class DomainService extends BaseService {
             this.apiInterface.logout();
         }
     }
-
-    /*public Date isRemoved(String domainName, String domainPath, Date created)
-    {
-        JSONArray eventList = null;
-        try
-        {
-            eventList = listEvents("DOMAIN.DELETE", "completed", created, null);
-        }
-        catch(Exception ex)
-        {
-            s_logger.error(ex.getStackTrace());
-            return null;
-        }
-        if (eventList == null || eventList.length() == 0)    return null;
-
-        for (int idx = 0; idx < eventList.length(); idx++)
-        {
-            try
-            {
-                JSONObject jsonObject = parseEventDescription(eventList.getJSONObject(idx));
-                String eventDomainPath = getAttrValue(jsonObject, "Domain Path");
-
-                if (eventDomainPath == null)  continue;
-                if (!eventDomainPath.equals(domainPath))    continue;
-
-                return parseDateStr(getAttrValue(jsonObject, "created"));
-            }
-            catch(Exception ex)
-            {
-                s_logger.error(ex.getStackTrace());
-                return null;
-            }
-        }
-
-        return null;
-    }*/
 }

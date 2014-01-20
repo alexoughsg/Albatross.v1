@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 public class DomainFullSyncProcessor extends FullSyncProcessor {
 
@@ -25,6 +24,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     protected List<DomainVO> localList;
     protected List<DomainVO> processedLocalList = new ArrayList<DomainVO>();
 
+    private LocalDomainManager localDomainManager;
     private RemoteDomainEventProcessor eventProcessor;
 
     public DomainFullSyncProcessor(String hostName, String userName, String password, Long parentDomainId)
@@ -49,7 +49,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         DomainService domainService = new DomainService(hostName, userName, password);
         remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
         String remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
-        //remoteArray = domainService.list();
         JSONArray remoteArray = domainService.listChildren(remoteParentDomainId, false);
         remoteList = new ArrayList<JSONObject>();
         for(int idx = 0; idx < remoteArray.length(); idx++)
@@ -64,68 +63,8 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
             }
         }
 
+        localDomainManager = new LocalDomainManager();
         eventProcessor = new RemoteDomainEventProcessor(hostName, userName, password);
-    }
-
-    private String convertPath(String path)
-    {
-        if (path.equals("ROOT"))
-        {
-            path = "/";
-        }
-        else
-        {
-            path = path.replace("ROOT/", "/");
-        }
-        return path;
-    }
-
-    private String buildParentPath(String domainPath, String parentDomainName)
-    {
-        /*if (parentDomainName == null)   return "/";
-
-        String[] tokenizedPath = domainPath.split("/");
-        StringBuilder parentPath = new StringBuilder();
-        for (int idx = 0; idx < tokenizedPath.length-1; idx++)
-        {
-            parentPath.append(tokenizedPath[idx]);
-            parentPath.append("/");
-        }
-        return parentPath.toString();*/
-        return BaseService.getAttrValue(remoteParent, "path");
-    }
-
-    private DomainVO getParentInLocal(DomainVO domain)
-    {
-        /*Long parentId = domain.getParent();
-        if (parentId == null)   return null;
-        return domainDao.findById(parentId);*/
-        return localParent;
-    }
-
-    private JSONObject getParentInRemote(JSONObject domainJSON)
-    {
-        /*String parentId = BaseService.getAttrValue(domainJSON, "parentdomainid");
-        if (parentId == null) return null;
-
-        for(int idx = 0; idx < remoteArray.length(); idx++)
-        {
-            try
-            {
-                JSONObject remoteJson = remoteArray.getJSONObject(idx);
-                String id = BaseService.getAttrValue(remoteJson, "id");
-                if (!parentId.equals(id))  continue;
-                return remoteJson;
-            }
-            catch(Exception ex)
-            {
-                continue;
-            }
-        }
-
-        return null;*/
-
-        return remoteParent;
     }
 
     private void syncAttributes(DomainVO domain, JSONObject remoteJson) throws Exception
@@ -147,28 +86,12 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
             if (localDate.equals(remoteDate))   return;
             if (localDate.after(remoteDate))   return;
 
-            update(domain, remoteJson, remoteDate);
+            localDomainManager.update(domain, remoteJson, remoteDate);
         }
         catch(Exception ex)
         {
             s_logger.error("Failed to synchronize domains : " + ex.getStackTrace());
         }
-    }
-
-    private void delete(DomainVO domain, Date removed)
-    {
-        boolean cleanup = false;
-        domain.setRemoved(removed);
-        domainManager.deleteDomain(domain, cleanup);
-        s_logger.info("Successfully removed a domain[" + domain.getName() + "]");
-    }
-
-    private void deactivate(DomainVO domain, Date removed)
-    {
-        domain.setState(Domain.State.Inactive);
-        domain.setModified(removed);
-        domainDao.update(domain.getId(), domain);
-        s_logger.info("Successfully deactivated a domain[" + domain.getName() + "]");
     }
 
     protected void expungeProcessedLocals()
@@ -232,13 +155,11 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     {
         String remoteName = BaseService.getAttrValue(jsonObject, "name");
         String remoteInitialName = BaseService.getAttrValue(jsonObject, "initialname");
-        JSONObject remoteParent = getParentInRemote(jsonObject);
         String remoteParentPath = (remoteParent == null) ? null : BaseService.getAttrValue(remoteParent, "path");
 
         for (Object object : localList)
         {
             DomainVO domain = (DomainVO)object;
-            DomainVO localParent = getParentInLocal(domain);
 
             String localInitialName = domain.getInitialName();
             if (localInitialName == null)   continue;
@@ -281,7 +202,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     {
         DomainVO domain = (DomainVO)object;
         String localInitialName = domain.getInitialName();
-        DomainVO localParent = getParentInLocal(domain);
         String localParentPath = (localParent == null) ? null : localParent.getPath();
 
         for (JSONObject jsonObject : remoteList)
@@ -289,7 +209,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
             String remoteInitialName = BaseService.getAttrValue(jsonObject, "initialname");
             if (remoteInitialName == null)   continue;
 
-            JSONObject remoteParent = getParentInRemote(jsonObject);
             String remoteParentPath = (remoteParent == null) ? null : BaseService.getAttrValue(remoteParent, "path");
             if (!BaseService.compareDomainPath(localParentPath, remoteParentPath))  continue;
 
@@ -300,68 +219,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         return null;
     }
 
-    //@Override
-    protected Object create(JSONObject jsonObject, final Date created)
-    {
-        // find parent domain id from the domain path
-        String domainPath = convertPath(BaseService.getAttrValue(jsonObject, "path"));
-        String parentDomainName = BaseService.getAttrValue(jsonObject, "parentdomainname");
-        String parentPath = buildParentPath(domainPath, parentDomainName);
-        DomainVO parentDomain = domainDao.findDomainByPath(parentPath);
-        if (parentDomain == null)
-        {
-            s_logger.error("Domain creation has been failed because its parent domain[" + parentDomainName + "] is not found");
-            return null;
-        }
-        final Long parentId = parentDomain.getId();
-
-        final String domainName = BaseService.getAttrValue(jsonObject, "name");
-        final String networkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
-        final String initialName = BaseService.getAttrValue(jsonObject, "initialname");
-        final String domainUUID = UUID.randomUUID().toString();
-
-
-
-        // how do I get 'ownerId' here??????
-        final long ownerId = 0;
-
-
-
-        /*return Transaction.execute(new TransactionCallback<DomainVO>() {
-            @Override
-            public DomainVO doInTransaction(TransactionStatus status) {
-                DomainVO domain = domainDao.create(new DomainVO(domainName, ownerId, parentId, networkDomain, domainUUID, initialName, created));
-                resourceCountDao.createResourceCounts(domain.getId(), ResourceLimit.ResourceOwnerType.Domain);
-                s_logger.info("Successfully created a domain[" + domain.getName() + "]");
-                return domain;
-            }
-        });*/
-        Domain domain = domainManager.createDomain(domainName, ownerId, parentId, networkDomain, domainUUID, initialName, created);
-        s_logger.info("Successfully created a domain[" + domain.getName() + "]");
-        return domain;
-    }
-
-    //@Override
-    protected void update(Object object, JSONObject jsonObject, Date modified)
-    {
-        DomainVO domain = (DomainVO)object;
-        domain.setState(Domain.State.Active);
-        String newDomainName = BaseService.getAttrValue(jsonObject, "name");
-        String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
-        String initialName = BaseService.getAttrValue(jsonObject, "initialname");
-        domainManager.updateDomain(domain, newDomainName, newNetworkDomain, initialName, modified);
-        s_logger.info("Successfully updated a domain[" + domain.getName() + "]");
-    }
-
-    //@Override
-    protected void remove(Object object, Date removed)
-    {
-        DomainVO domain = (DomainVO)object;
-        //delete(domain, removed);
-        deactivate(domain, removed);
-    }
-
-    //@Override
     protected boolean synchronize(DomainVO domain) throws Exception
     {
         JSONObject remoteJson = findRemote(domain);
@@ -376,7 +233,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         return true;
     }
 
-    //@Override
     protected boolean synchronizeUsingEvent(DomainVO domain) throws Exception
     {
         JSONObject eventJson = eventProcessor.findLatestRemoteRemoveEvent(domain);
@@ -392,14 +248,13 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         if (eventDate.before(created))  return false;
 
         // remove this local
-        remove(domain, eventDate);
+        localDomainManager.remove(domain, eventDate);
 
         processedLocalList.add(domain);
 
         return true;
     }
 
-    //@Override
     protected boolean synchronizeUsingInitialName(DomainVO domain) throws Exception
     {
         JSONObject remoteJson = findRemoteByInitialName(domain);
@@ -414,7 +269,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         return true;
     }
 
-    @Override
     protected void synchronizeByLocal()
     {
         for(DomainVO domain : localList)
@@ -482,22 +336,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         expungeProcessedRemotes();
     }
 
-    /*//@Override
-    protected boolean synchronize(JSONObject remoteJson) throws Exception
-    {
-        DomainVO domain = findLocal(remoteJson);
-        if (domain == null) return false;
-
-        // synchronize the attributes
-        syncAttributes(domain, remoteJson);
-
-        processedLocalList.add(domain);
-        processedRemoteList.add(remoteJson);
-
-        return true;
-    }*/
-
-    //@Override
     protected boolean synchronizeUsingRemoved(JSONObject remoteJson) throws Exception
     {
         String remotePath = BaseService.getAttrValue(remoteJson, "path");
@@ -541,14 +379,14 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         if (created.after(removed))
         {
             // create this remote in the local region
-            create(remoteJson, created);
+            String parentPath = BaseService.getAttrValue(remoteParent, "path");
+            localDomainManager.create(remoteJson, parentPath, created);
         }
 
         processedRemoteList.add(remoteJson);
         return true;
     }
 
-    //@Override
     protected boolean synchronizeUsingInitialName(JSONObject remoteJson) throws Exception
     {
         DomainVO domain = findLocalByInitialName(remoteJson);
@@ -566,29 +404,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     @Override
     protected void synchronizeByRemote()
     {
-        /*for (JSONObject remoteJson : remoteList)
-        {
-            String domainPath = BaseService.getAttrValue(remoteJson, "path");
-
-            try
-            {
-                boolean sync = synchronize(remoteJson);
-                if (sync)
-                {
-                    s_logger.info("DomainJSON[" + domainPath + "] successfully synchronized");
-                    continue;
-                }
-                s_logger.info("DomainJSON[" + domainPath + "] not synchronized");
-            }
-            catch(Exception ex)
-            {
-                s_logger.error("DomainJSON[" + domainPath + "] failed to synchronize : " + ex.getStackTrace());
-            }
-        }
-
-        expungeProcessedLocals();
-        expungeProcessedRemotes();*/
-
         // not sure if this is necessary because this remote resources will be eventually created at 'createRemoteResourcesInLocal'
         /*for (JSONObject remoteJson : remoteList)
         {
@@ -683,8 +498,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     @Override
     public void createRemoteResourcesInLocal()
     {
-        List<DomainVO> children = domainDao.findImmediateChildrenForParent(localParent.getId());
-
         for (JSONObject remoteJson : remoteList)
         {
             String domainPath = BaseService.getAttrValue(remoteJson, "path");
@@ -704,7 +517,8 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
             {
                 // create this remote in the local region
                 Date created = getDate(remoteJson, "created");
-                create(remoteJson, created);
+                String parentPath = BaseService.getAttrValue(remoteParent, "path");
+                localDomainManager.create(remoteJson, parentPath, created);
                 s_logger.info("DomainJSON[" + domainPath + "] successfully created in the local region");
             }
             catch(Exception ex)
@@ -717,8 +531,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     @Override
     public void removeLocalResources()
     {
-        List<DomainVO> children = domainDao.findImmediateChildrenForParent(localParent.getId());
-
         for (DomainVO domain : localList)
         {
             String domainPath = domain.getPath();
@@ -729,8 +541,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 continue;
             }
 
-            //delete(domain, null);
-            if(!found.getState().equals(Domain.State.Inactive)) deactivate(found, null);
+            localDomainManager.remove(found, null);
         }
     }
 }

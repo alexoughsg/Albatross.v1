@@ -1525,7 +1525,7 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         // Check if user performing the action is allowed to modify this account
         if (CallContext.current() != null)  checkAccess(CallContext.current().getCallingAccount(), _domainMgr.getDomain(account.getDomainId()));
 
-        success = updateAccount(account, newAccountName, networkDomain, details);
+        success = updateAccount(account, newAccountName, networkDomain, details, null, null, null);
         if (success) {
             if (CallContext.current() != null)
             {
@@ -1536,13 +1536,6 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         } else {
             throw new CloudRuntimeException("Unable to update account by accountId: " + accountId + " OR by name: " + accountName + " in domain " + domainId);
         }
-    }
-
-    @Override
-    @DB
-    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, final Map<String, String> details)
-    {
-        return updateAccount(account, newAccountName, newNetworkDomain, details, null, null, null);
     }
 
     @Override

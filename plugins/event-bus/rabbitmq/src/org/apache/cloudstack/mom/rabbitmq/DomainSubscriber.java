@@ -23,43 +23,6 @@ public class DomainSubscriber extends MultiRegionSubscriber {
 
         if (!isExecutable())    return;
 
-        /*String[][] remoteRegions = {
-                {"localhost", "admin", "password"},
-                //{"10.88.90.82", "admin", "password"},
-                //{"207.19.99.100", "admin", "password"}
-        };
-        DomainFullScanner domainScanner = new DomainFullScanner();
-        domainScanner.refreshAll(remoteRegions);
-
-        AccountFullScanner accountScanner = new AccountFullScanner();
-        accountScanner.refreshAll(remoteRegions);
-
-        UserFullScanner userScanner = new UserFullScanner();
-        userScanner.refreshAll(remoteRegions);*/
-
-        /*DomainLocalGenerator dgen = new DomainLocalGenerator();
-        DomainVO domain = dgen.create();
-        dgen.update(domain);
-        //dgen.remove(domain);
-
-        AccountLocalGenerator agen = new AccountLocalGenerator();
-        AccountVO account = agen.create();
-        agen.update(account);
-        agen.lock(account);
-        agen.enable(account);
-        agen.disable(account);
-        agen.enable(account);
-        //agen.remove(account);
-
-        UserLocalGenerator ugen = new UserLocalGenerator();
-        UserVO user = ugen.create();
-        ugen.update(user);
-        ugen.lock(user);
-        ugen.enable(user);
-        ugen.disable(user);
-        ugen.enable(user);
-        //ugen.remove(user);*/
-
         process(event);
     }
 

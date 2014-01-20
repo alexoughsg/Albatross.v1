@@ -122,7 +122,6 @@ public interface AccountManager extends AccountService {
      * @return updated account object
      */
     Account updateAccount(UpdateAccountCmd cmd);
-    boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details);
     boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Account.State state, String initialName, Date modified);
 
     /**

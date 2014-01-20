@@ -371,34 +371,4 @@ public class AccountService extends BaseService {
             this.apiInterface.logout();
         }
     }
-
-    /*public Date isRemoved(String accountName, String domainPath, Date created)
-    {
-        try
-        {
-            JSONArray eventList = listEvents("ACCOUNT.DELETE", "completed", created, null);
-            if (eventList.length() == 0)    return null;
-
-            for (int idx = 0; idx < eventList.length(); idx++)
-            {
-                JSONObject jsonObject = parseEventDescription(eventList.getJSONObject(idx));
-                String eventAccountName = getAttrValue(jsonObject, "Account Name");
-                String eventDomainPath = getAttrValue(jsonObject, "Domain Path");
-
-                if (eventAccountName == null)  continue;
-                if (!eventAccountName.equals(accountName))    continue;
-                if (eventDomainPath == null)    continue;
-                if (!eventDomainPath.equals(domainPath))    continue;
-
-                return parseDateStr(getAttrValue(jsonObject, "created"));
-            }
-
-            return null;
-        }
-        catch(Exception ex)
-        {
-            s_logger.error(ex.getStackTrace());
-            return null;
-        }
-    }*/
 }

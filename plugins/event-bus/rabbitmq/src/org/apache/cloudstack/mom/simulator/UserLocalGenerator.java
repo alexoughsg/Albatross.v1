@@ -2,10 +2,14 @@ package org.apache.cloudstack.mom.simulator;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
+import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.Account;
 import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
-import org.apache.cloudstack.mom.service.UserFullScanner;
+import com.cloud.user.dao.AccountDao;
+import com.cloud.user.dao.UserDao;
+import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.mom.service.LocalUserManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
@@ -13,8 +17,21 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.Random;
 
-public class UserLocalGenerator extends UserFullScanner {
+public class UserLocalGenerator extends LocalGenerator {
     private static final Logger s_logger = Logger.getLogger(UserLocalGenerator.class);
+
+    private UserDao userDao;
+    private AccountDao accountDao;
+    private DomainDao domainDao;
+    private LocalUserManager localUserManager;
+
+    public UserLocalGenerator()
+    {
+        this.userDao = ComponentContext.getComponent(UserDao.class);
+        this.accountDao = ComponentContext.getComponent(AccountDao.class);
+        this.domainDao = ComponentContext.getComponent(DomainDao.class);
+        this.localUserManager = new LocalUserManager();
+    }
 
     protected UserVO randSelect()
     {
@@ -61,18 +78,16 @@ public class UserLocalGenerator extends UserFullScanner {
             userJson.put("lastname", lastName);
             userJson.put("email", email);
             userJson.put("timezone", timezone);
+
+            UserVO user = (UserVO)localUserManager.create(userJson, created);
+            s_logger.info("Successfully created user[" + user.getUsername() + "]");
+            return user;
         }
         catch (Exception ex)
         {
-            s_logger.error("Failed to set json attributes", ex);
+            s_logger.error("Failed to create a user", ex);
             return null;
         }
-
-        UserVO user = (UserVO)super.create(userJson, created);
-        s_logger.info("Successfully created user[" + user.getUsername() + "]");
-
-        user = userDao.findById(user.getId());
-        return user;
     }
 
     public UserVO update(UserVO user)
@@ -82,7 +97,10 @@ public class UserLocalGenerator extends UserFullScanner {
 
         // select a random user
         if(user == null)    user = randSelect();
-        if (!user.getState().equals(Account.State.enabled)) super.enable(user, modified);
+        if (!user.getState().equals(Account.State.enabled))
+        {
+            localUserManager.enable(user, modified);
+        }
 
         // create new attribute values
         String userName = "U" + generateRandString();
@@ -111,7 +129,7 @@ public class UserLocalGenerator extends UserFullScanner {
             return null;
         }
 
-        super.update(user, userJson, modified);
+        localUserManager.update(user, userJson, modified);
         s_logger.info("Successfully updated user[" + user.getUsername() + "]");
 
         return user;
@@ -124,7 +142,7 @@ public class UserLocalGenerator extends UserFullScanner {
         // select a random user
         if(user == null)    user = randSelect();
 
-        super.lock(user, modified);
+        localUserManager.lock(user, modified);
         s_logger.info("Successfully locked user[" + user.getUsername() + "]");
 
         return user;
@@ -137,7 +155,7 @@ public class UserLocalGenerator extends UserFullScanner {
         // select a random user
         if(user == null)    user = randSelect();
 
-        super.disable(user, modified);
+        localUserManager.disable(user, modified);
         s_logger.info("Successfully disabled user[" + user.getUsername() + "]");
 
         return user;
@@ -150,7 +168,7 @@ public class UserLocalGenerator extends UserFullScanner {
         // select a random user
         if(user == null)    user = randSelect();
 
-        super.enable(user, modified);
+        localUserManager.enable(user, modified);
         s_logger.info("Successfully enabled user[" + user.getUsername() + "]");
 
         return user;
@@ -163,7 +181,7 @@ public class UserLocalGenerator extends UserFullScanner {
         // select a random user
         if(user == null)    user = randSelect();
 
-        super.remove(user, removed);
+        localUserManager.remove(user, removed);
         s_logger.info("Successfully removed user[" + user.getUsername() + "]");
 
         return user;

@@ -2,9 +2,12 @@ package org.apache.cloudstack.mom.simulator;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
+import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.Account;
 import com.cloud.user.AccountVO;
-import org.apache.cloudstack.mom.service.AccountFullScanner;
+import com.cloud.user.dao.AccountDao;
+import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.mom.service.LocalAccountManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
@@ -12,9 +15,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-public class AccountLocalGenerator extends AccountFullScanner {
+public class AccountLocalGenerator extends LocalGenerator {
 
     private static final Logger s_logger = Logger.getLogger(AccountLocalGenerator.class);
+
+    private AccountDao accountDao;
+    private DomainDao domainDao;
+    private LocalAccountManager localAccountManager;
+
+    public AccountLocalGenerator()
+    {
+        this.accountDao = ComponentContext.getComponent(AccountDao.class);
+        this.domainDao = ComponentContext.getComponent(DomainDao.class);
+        this.localAccountManager = new LocalAccountManager();
+    }
 
     protected AccountVO randSelect()
     {
@@ -55,17 +69,15 @@ public class AccountLocalGenerator extends AccountFullScanner {
             accountJson.put("networkdomain", networkDomain);
             accountJson.put("accounttype", Short.toString(accountType));
             accountJson.put("details", accountDetails);
+            AccountVO account = (AccountVO)localAccountManager.create(accountJson, created);
+            s_logger.info("Successfully created account[" + account.getAccountName() + "]");
+            return account;
         }
         catch (Exception ex)
         {
-            s_logger.error("Failed to set json attributes", ex);
+            s_logger.error("Failed to create an account", ex);
             return null;
         }
-
-        AccountVO account = (AccountVO)super.create(accountJson, created);
-        s_logger.info("Successfully created account[" + account.getAccountName() + "]");
-
-        return account;
     }
 
     public AccountVO update(AccountVO account)
@@ -75,7 +87,10 @@ public class AccountLocalGenerator extends AccountFullScanner {
 
         // select a random account
         if (account == null)    account = randSelect();
-        if (!account.getState().equals(Account.State.enabled)) super.enable(account, modified);
+        if (!account.getState().equals(Account.State.enabled))
+        {
+            localAccountManager.enable(account, modified);
+        }
 
         // create new attribute values
         String newAccountName = "A" + generateRandString();
@@ -87,17 +102,15 @@ public class AccountLocalGenerator extends AccountFullScanner {
             accountJson.put("name", newAccountName);
             accountJson.put("networkdomain", newNetworkDomain);
             accountJson.put("details", accountDetails);
+            localAccountManager.update(account, accountJson, modified);
+            s_logger.info("Successfully updated account[" + account.getAccountName() + "]");
+            return account;
         }
         catch (Exception ex)
         {
             s_logger.error("Failed to set json attributes", ex);
             return null;
         }
-
-        super.update(account, accountJson, modified);
-        s_logger.info("Successfully updated account[" + account.getAccountName() + "]");
-
-        return account;
     }
 
     public AccountVO lock(AccountVO account)
@@ -107,7 +120,7 @@ public class AccountLocalGenerator extends AccountFullScanner {
         // select a random account
         if (account == null)    account = randSelect();
 
-        super.lock(account, modified);
+        localAccountManager.lock(account, modified);
         s_logger.info("Successfully locked account[" + account.getAccountName() + "]");
 
         return account;
@@ -120,10 +133,18 @@ public class AccountLocalGenerator extends AccountFullScanner {
         // select a random account
         if (account == null)    account = randSelect();
 
-        super.disable(account, modified);
-        s_logger.info("Successfully disabled account[" + account.getAccountName() + "]");
+        try
+        {
+            localAccountManager.disable(account, modified);
+            s_logger.info("Successfully disabled account[" + account.getAccountName() + "]");
 
-        return account;
+            return account;
+        }
+        catch (Exception ex)
+        {
+            s_logger.error("Failed to disable account", ex);
+            return null;
+        }
     }
 
     public AccountVO enable(AccountVO account)
@@ -133,7 +154,7 @@ public class AccountLocalGenerator extends AccountFullScanner {
         // select a random account
         if (account == null)    account = randSelect();
 
-        super.enable(account, modified);
+        localAccountManager.enable(account, modified);
         s_logger.info("Successfully enabled account[" + account.getAccountName() + "]");
 
         return account;
@@ -146,7 +167,7 @@ public class AccountLocalGenerator extends AccountFullScanner {
         // select a random account
         if (account == null)    account = randSelect();
 
-        super.remove(account, removed);
+        localAccountManager.remove(account, removed);
         s_logger.info("Successfully removed account[" + account.getAccountName() + "]");
 
         return account;
