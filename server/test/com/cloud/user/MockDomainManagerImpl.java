@@ -160,7 +160,7 @@ public class MockDomainManagerImpl extends ManagerBase implements DomainManager,
     }
 
     @Override
-    public boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain, Date modified)
+    public boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain, String newInitialName, Date modified)
     {
         return false;
     }
@@ -171,4 +171,9 @@ public class MockDomainManagerImpl extends ManagerBase implements DomainManager,
         return null;
     }
 
+    @Override
+    public Domain createDomain(String name, Long parentId, Long ownerId, String networkDomain, String domainUUID, String initialName, Date created)
+    {
+        return null;
+    }
 }

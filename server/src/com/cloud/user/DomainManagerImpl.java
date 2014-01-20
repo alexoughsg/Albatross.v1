@@ -170,7 +170,15 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
 
     @Override
     @DB
-    public Domain createDomain(final String name, final Long parentId, final Long ownerId, final String networkDomain, String domainUUID) {
+    public Domain createDomain(final String name, final Long parentId, final Long ownerId, final String networkDomain, String domainUUID)
+    {
+        return createDomain(name, parentId, ownerId, networkDomain, domainUUID, null, null);
+    }
+
+    @Override
+    @DB
+    public Domain createDomain(final String name, final Long parentId, final Long ownerId, final String networkDomain, String domainUUID, final String initialName, final Date created)
+    {
         // Verify network domain
         if (networkDomain != null) {
             if (!NetUtils.verifyDomainName(networkDomain)) {
@@ -197,7 +205,17 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         DomainVO domain = Transaction.execute(new TransactionCallback<DomainVO>() {
             @Override
             public DomainVO doInTransaction(TransactionStatus status) {
-                DomainVO domain = _domainDao.create(new DomainVO(name, ownerId, parentId, networkDomain, domainUUIDFinal));
+                DomainVO newDomain = new DomainVO(name, ownerId, parentId, networkDomain, domainUUIDFinal);
+                newDomain.setInitialName(initialName);
+                if (created == null)
+                {
+                    newDomain.setCreated(new Date());
+                }
+                else
+                {
+                    newDomain.setCreated(created);
+                }
+                DomainVO domain = _domainDao.create(newDomain);
                 _resourceCountDao.createResourceCounts(domain.getId(), ResourceLimit.ResourceOwnerType.Domain);
                 return domain;
             }
@@ -602,18 +620,19 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
     @DB
     public boolean updateDomain(final DomainVO domain, String newDomainName, String newNetworkDomain)
     {
-        return updateDomain(domain, newDomainName, newNetworkDomain, null);
+        return updateDomain(domain, newDomainName, newNetworkDomain, null, null);
     }
 
     @Override
     @DB
-    public boolean updateDomain(final DomainVO domain, String newDomainName, String newNetworkDomain, Date modified)
+    public boolean updateDomain(final DomainVO domain, String newDomainName, String newNetworkDomain, String initialName, Date modified)
     {
         final Long domainId = domain.getId();
 
         final String domainName = newDomainName;
         final String oldDomainName = domain.getName();
         final String networkDomain = newNetworkDomain;
+        final String newInitialName = initialName;
         final Date modifiedDate = modified;
 
         // domain name is unique in the cloud
@@ -658,6 +677,15 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
                     } else {
                         domain.setNetworkDomain(networkDomain);
                     }
+                }
+
+                if (newInitialName == null)
+                {
+                    if (!oldDomainName.equals(domainName) && domain.getInitialName() == null)  domain.setInitialName(newInitialName);
+                }
+                else
+                {
+                    domain.setInitialName(newInitialName);
                 }
 
                 if (modifiedDate == null)

@@ -93,7 +93,7 @@ public class BaseService {
         }
         catch(Exception ex)
         {
-            s_logger.info("Failed to get value of [" + attrName + "] : " + obj);
+            s_logger.error("Failed to get value of [" + attrName + "] : " + obj);
             //throw new Exception("Failed to find attr value for " + attrName);
             return null;
         }
@@ -141,7 +141,7 @@ public class BaseService {
         }
         catch(Exception ex)
         {
-            s_logger.info("Failed to find json array for " + attrName);
+            s_logger.error("Failed to find json array for " + attrName);
             //throw new Exception("Failed to find json array for " + attrName);
             return null;
         }
@@ -203,7 +203,7 @@ public class BaseService {
         }
         if (jobId == null && projectId == null)
         {
-            s_logger.info("Failed to find async job status for " + retJson);
+            s_logger.error("Failed to find async job status for " + retJson);
             return null;
         }
 

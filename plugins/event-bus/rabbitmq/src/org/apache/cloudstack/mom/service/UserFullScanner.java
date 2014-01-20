@@ -51,7 +51,7 @@ public class UserFullScanner extends FullScanner {
         try
         {
             UserService userService = new UserService(hostName, userName, password);
-            JSONArray userArray = userService.list();
+            JSONArray userArray = userService.list(null, null);
             return userArray;
         }
         catch(Exception ex)

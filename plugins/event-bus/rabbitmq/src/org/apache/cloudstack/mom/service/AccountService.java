@@ -83,6 +83,26 @@ public class AccountService extends BaseService {
         }
     }
 
+    public JSONObject findAccount(String domainId, String accountName)
+    {
+        this.apiInterface = new AccountInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+            JSONObject accountJson = this.apiInterface.findAccount(domainId, accountName);
+            s_logger.info("Successfully found account");
+            return accountJson;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to find accounts", ex);
+            return null;
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
     public boolean create(User user, Account account, Domain domain, String oldAccountName)
     {
         if (user == null)

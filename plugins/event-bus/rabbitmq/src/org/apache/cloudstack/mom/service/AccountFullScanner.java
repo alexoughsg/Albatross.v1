@@ -217,7 +217,7 @@ public class AccountFullScanner extends FullScanner {
         String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
         final Map<String, String> accountDetails = details;
 
-        accountManager.updateAccount(account, newAccountName, newNetworkDomain, details, modified, null);
+        accountManager.updateAccount(account, newAccountName, newNetworkDomain, details, null, null, modified);
         s_logger.info("Successfully updated an account[" + account.getAccountName() + "]");
     }
 

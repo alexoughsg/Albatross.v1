@@ -2,16 +2,11 @@ package org.apache.cloudstack.mom.service;
 
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
-import com.cloud.configuration.ResourceLimit;
-import com.cloud.configuration.dao.ResourceCountDao;
 import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.DomainManager;
 import com.cloud.utils.component.ComponentContext;
-import com.cloud.utils.db.Transaction;
-import com.cloud.utils.db.TransactionCallback;
-import com.cloud.utils.db.TransactionStatus;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -24,7 +19,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     private static final Logger s_logger = Logger.getLogger(DomainFullSyncProcessor.class);
 
     protected DomainDao domainDao;
-    private ResourceCountDao resourceCountDao;
     private DomainManager domainManager;
 
     protected DomainVO localParent;
@@ -40,7 +34,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         this.password = password;
 
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
-        this.resourceCountDao = ComponentContext.getComponent(ResourceCountDao.class);
         this.domainManager = ComponentContext.getComponent(DomainManager.class);
 
         localParent = domainDao.findById(parentDomainId);
@@ -198,11 +191,12 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         {
             String remoteName = BaseService.getAttrValue(jsonObject, "name");
             String remoteNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
+            String remoteInitialName = BaseService.getAttrValue(jsonObject, "initialname");
             if (!domain.getName().equals(remoteName))   return false;
             if (!domain.getState().equals(Domain.State.Active)) return false;
-            if (domain.getNetworkDomain() == null && remoteNetworkDomain == null)   return true;
-            if (domain.getNetworkDomain() == null || remoteNetworkDomain == null)   return false;
-            return (domain.getNetworkDomain().equals(remoteNetworkDomain));
+            if (!strCompare(domain.getNetworkDomain(), remoteNetworkDomain))   return false;
+            if (!strCompare(domain.getInitialName(), remoteInitialName)) return false;
+            return true;
         }
         catch(Exception ex)
         {
@@ -323,6 +317,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
 
         final String domainName = BaseService.getAttrValue(jsonObject, "name");
         final String networkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
+        final String initialName = BaseService.getAttrValue(jsonObject, "initialname");
         final String domainUUID = UUID.randomUUID().toString();
 
 
@@ -332,16 +327,18 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
 
 
 
-        return Transaction.execute(new TransactionCallback<DomainVO>() {
+        /*return Transaction.execute(new TransactionCallback<DomainVO>() {
             @Override
             public DomainVO doInTransaction(TransactionStatus status) {
-                DomainVO domain = domainDao.create(new DomainVO(domainName, ownerId, parentId, networkDomain, domainUUID, created));
+                DomainVO domain = domainDao.create(new DomainVO(domainName, ownerId, parentId, networkDomain, domainUUID, initialName, created));
                 resourceCountDao.createResourceCounts(domain.getId(), ResourceLimit.ResourceOwnerType.Domain);
                 s_logger.info("Successfully created a domain[" + domain.getName() + "]");
                 return domain;
             }
-        });
-
+        });*/
+        Domain domain = domainManager.createDomain(domainName, ownerId, parentId, networkDomain, domainUUID, initialName, created);
+        s_logger.info("Successfully created a domain[" + domain.getName() + "]");
+        return domain;
     }
 
     //@Override
@@ -351,7 +348,8 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         domain.setState(Domain.State.Active);
         String newDomainName = BaseService.getAttrValue(jsonObject, "name");
         String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
-        domainManager.updateDomain(domain, newDomainName, newNetworkDomain, modified);
+        String initialName = BaseService.getAttrValue(jsonObject, "initialname");
+        domainManager.updateDomain(domain, newDomainName, newNetworkDomain, initialName, modified);
         s_logger.info("Successfully updated a domain[" + domain.getName() + "]");
     }
 
@@ -388,7 +386,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         Date created = domain.getCreated();
         if (created == null)
         {
-            s_logger.info("Can't synchronizeUsingEvent because domain created is null");
+            s_logger.error("Can't synchronizeUsingEvent because domain created is null");
             return false;
         }
         if (eventDate.before(created))  return false;
@@ -426,10 +424,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronize(domain);
                 if (sync)
                 {
-                    s_logger.error("Domain[" + domain.getPath() + "] successfully synchronized");
+                    s_logger.info("Domain[" + domain.getPath() + "] successfully synchronized");
                     continue;
                 }
-                s_logger.error("Domain[" + domain.getPath() + "] not synchronized");
+                s_logger.info("Domain[" + domain.getPath() + "] not synchronized");
             }
             catch(Exception ex)
             {
@@ -447,11 +445,11 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingEvent(domain);
                 if (sync)
                 {
-                    s_logger.error("Domain[" + domain.getPath() + "] successfully synchronized using events");
+                    s_logger.info("Domain[" + domain.getPath() + "] successfully synchronized using events");
 
                     continue;
                 }
-                s_logger.error("Domain[" + domain.getPath() + "] not synchronized using events");
+                s_logger.info("Domain[" + domain.getPath() + "] not synchronized using events");
             }
             catch(Exception ex)
             {
@@ -469,10 +467,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingInitialName(domain);
                 if (sync)
                 {
-                    s_logger.error("Domain[" + domain.getPath() + "] successfully synchronized using initial names");
+                    s_logger.info("Domain[" + domain.getPath() + "] successfully synchronized using initial names");
                     continue;
                 }
-                s_logger.error("Domain[" + domain.getPath() + "] not synchronized using initial names");
+                s_logger.info("Domain[" + domain.getPath() + "] not synchronized using initial names");
             }
             catch(Exception ex)
             {
@@ -506,7 +504,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         Date created = getDate(remoteJson, "created");
         if (created == null)
         {
-            s_logger.info("Can't synchronizeUsingRemoved because remote created is null");
+            s_logger.error("Can't synchronizeUsingRemoved because remote created is null");
             return false;
         }
 
@@ -527,7 +525,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 Date currentCreated = domain.getCreated();
                 if (currentCreated == null)
                 {
-                    s_logger.info("Can't synchronizeUsingRemoved because one of the removed domain has null created");
+                    s_logger.error("Can't synchronizeUsingRemoved because one of the removed domain has null created");
                     return false;
                 }
                 else if (currentCreated.after(removedDomain.getCreated()))
@@ -577,10 +575,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronize(remoteJson);
                 if (sync)
                 {
-                    s_logger.error("DomainJSON[" + domainPath + "] successfully synchronized");
+                    s_logger.info("DomainJSON[" + domainPath + "] successfully synchronized");
                     continue;
                 }
-                s_logger.error("DomainJSON[" + domainPath + "] not synchronized");
+                s_logger.info("DomainJSON[" + domainPath + "] not synchronized");
             }
             catch(Exception ex)
             {
@@ -601,10 +599,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingRemoved(remoteJson);
                 if (sync)
                 {
-                    s_logger.error("DomainJSON[" + domainPath + "] successfully synchronized using events");
+                    s_logger.info("DomainJSON[" + domainPath + "] successfully synchronized using events");
                     continue;
                 }
-                s_logger.error("DomainJSON[" + domainPath + "] not synchronized using events");
+                s_logger.info("DomainJSON[" + domainPath + "] not synchronized using events");
             }
             catch(Exception ex)
             {
@@ -624,10 +622,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingInitialName(remoteJson);
                 if (sync)
                 {
-                    s_logger.error("DomainJSON[" + domainPath + "] successfully synchronized using initial names");
+                    s_logger.info("DomainJSON[" + domainPath + "] successfully synchronized using initial names");
                     continue;
                 }
-                s_logger.error("DomainJSON[" + domainPath + "] not synchronized using initial names");
+                s_logger.info("DomainJSON[" + domainPath + "] not synchronized using initial names");
             }
             catch(Exception ex)
             {
@@ -637,11 +635,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
 
         expungeProcessedLocals();
         expungeProcessedRemotes();
-    }
-
-    public List<DomainVO> getLocalProcessedList()
-    {
-        return processedLocalList;
     }
 
     @Override
@@ -687,15 +680,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         }
     }
 
-    private DomainVO findFromList(List<DomainVO> list, String name)
-    {
-        for(DomainVO domain : list)
-        {
-            if (domain.getName().equals(name))  return domain;
-        }
-        return null;
-    }
-
     @Override
     public void createRemoteResourcesInLocal()
     {
@@ -704,8 +688,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         for (JSONObject remoteJson : remoteList)
         {
             String domainPath = BaseService.getAttrValue(remoteJson, "path");
-            String domainName = BaseService.getAttrValue(remoteJson, "name");
-            DomainVO domain = findFromList(children, domainName);
+            DomainVO domain = domainDao.findDomainByPath(domainPath);
             if(domain != null)
             {
                 if (!domain.getState().equals(Domain.State.Active))
@@ -722,7 +705,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 // create this remote in the local region
                 Date created = getDate(remoteJson, "created");
                 create(remoteJson, created);
-                s_logger.error("DomainJSON[" + domainPath + "] successfully created in the local region");
+                s_logger.info("DomainJSON[" + domainPath + "] successfully created in the local region");
             }
             catch(Exception ex)
             {
@@ -736,20 +719,18 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     {
         List<DomainVO> children = domainDao.findImmediateChildrenForParent(localParent.getId());
 
-        for (Object object : localList)
+        for (DomainVO domain : localList)
         {
-            DomainVO domain = (DomainVO)object;
-            String domainName = domain.getName();
-
-            domain = findFromList(children, domainName);
-            if(domain == null)
+            String domainPath = domain.getPath();
+            DomainVO found = domainDao.findDomainByPath(domainPath);
+            if(found == null)
             {
-                s_logger.info("Domain[" + domainName + "] already removed from the local region");
+                s_logger.info("Domain[" + domainPath + "] already removed from the local region");
                 continue;
             }
 
             //delete(domain, null);
-            if(!domain.getState().equals(Domain.State.Inactive)) deactivate(domain, null);
+            if(!found.getState().equals(Domain.State.Inactive)) deactivate(found, null);
         }
     }
 }

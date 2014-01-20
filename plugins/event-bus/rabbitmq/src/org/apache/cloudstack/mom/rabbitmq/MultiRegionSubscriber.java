@@ -3,6 +3,7 @@ package org.apache.cloudstack.mom.rabbitmq;
 import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
+import com.cloud.user.AccountVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
@@ -14,6 +15,7 @@ import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.framework.events.EventSubscriber;
 import org.apache.cloudstack.mom.service.AccountFullSyncProcessor;
 import org.apache.cloudstack.mom.service.DomainFullSyncProcessor;
+import org.apache.cloudstack.mom.service.UserFullSyncProcessor;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
@@ -184,6 +186,49 @@ public class MultiRegionSubscriber  implements EventSubscriber {
         for(int idx = 0; idx < syncProcessors.size(); idx++)
         {
             AccountFullSyncProcessor processor = syncProcessors.get(idx);
+            processor.createRemoteResourcesInLocal();
+            processor.removeLocalResources();
+        }
+
+        // now start the user full scan for each account belonging to the given domain
+        for(AccountVO account : accountDao.findActiveAccountsForDomain(domain.getId()))
+        {
+            if (domain.getName().equals("ROOT") && account.getAccountName().equals("system"))
+            {
+                // skip the 'system' user
+                continue;
+            }
+            fullUserScan(account);
+        }
+    }
+
+    protected void fullUserScan(AccountVO account)
+    {
+        List<UserFullSyncProcessor> syncProcessors = new ArrayList<UserFullSyncProcessor>();
+
+        for (String[] region : regions)
+        {
+            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region[0], region[1], region[2], account.getId());
+            syncProcessor.synchronize();
+
+            syncProcessors.add(syncProcessor);
+        }
+
+        // arrange the left & processed resources
+        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
+        {
+            UserFullSyncProcessor first = syncProcessors.get(idx);
+            UserFullSyncProcessor second = syncProcessors.get(idx+1);
+            first.arrangeLocalResourcesToBeRemoved(second);
+            second.arrangeLocalResourcesToBeRemoved(first);
+            first.arrangeRemoteResourcesToBeCreated(second);
+            second.arrangeRemoteResourcesToBeCreated(first);
+        }
+
+        // create or remove unprocessed resources
+        for(int idx = 0; idx < syncProcessors.size(); idx++)
+        {
+            UserFullSyncProcessor processor = syncProcessors.get(idx);
             processor.createRemoteResourcesInLocal();
             processor.removeLocalResources();
         }

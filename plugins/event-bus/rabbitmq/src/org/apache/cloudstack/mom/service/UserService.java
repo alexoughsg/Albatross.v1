@@ -72,7 +72,7 @@ public class UserService extends BaseService {
     {
         try
         {
-            JSONArray userArray = this.apiInterface.listUsers();
+            JSONArray userArray = this.apiInterface.listUsers(null, null);
             JSONObject userObj = findJSONObject(userArray, attrNames, attrValues);
             return userObj;
         }
@@ -82,13 +82,13 @@ public class UserService extends BaseService {
         }
     }
 
-    public JSONArray list()
+    public JSONArray list(String domainId, String accountName)
     {
         this.apiInterface = new UserInterface(this.url);
         try
         {
             this.apiInterface.login(this.userName, this.password);
-            JSONArray userArray = this.apiInterface.listUsers();
+            JSONArray userArray = this.apiInterface.listUsers(domainId, accountName);
             s_logger.info("Successfully found user list");
             return userArray;
         }
@@ -401,37 +401,4 @@ public class UserService extends BaseService {
             this.apiInterface.logout();
         }
     }
-
-    /*public Date isRemoved(String userName, String accountName, String domainPath, Date created)
-    {
-        try
-        {
-            JSONArray eventList = listEvents("USER.DELETE", "completed", created, null);
-            if (eventList.length() == 0)    return null;
-
-            for (int idx = 0; idx < eventList.length(); idx++)
-            {
-                JSONObject jsonObject = parseEventDescription((JSONObject)eventList.get(idx));
-                String eventUserName = (String)jsonObject.get("User Name");
-                String eventAccountName = (String)jsonObject.get("Account Name");
-                String eventDomainPath = getAttrValue(jsonObject, "Domain Path");
-
-                if (eventUserName == null)  continue;
-                if (!eventUserName.equals(userName))    continue;
-                if (eventAccountName == null)  continue;
-                if (!eventAccountName.equals(accountName))    continue;
-                if (eventDomainPath == null)    continue;
-                if (!eventDomainPath.equals(domainPath))    continue;
-
-                return parseDateStr(getAttrValue(jsonObject, "created"));
-            }
-
-            return null;
-        }
-        catch(Exception ex)
-        {
-            s_logger.error(ex.getStackTrace());
-            return null;
-        }
-    }*/
 }

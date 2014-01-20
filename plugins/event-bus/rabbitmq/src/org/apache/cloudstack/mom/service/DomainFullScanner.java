@@ -175,7 +175,7 @@ public class DomainFullScanner extends FullScanner {
 
         String newDomainName = BaseService.getAttrValue(jsonObject, "name");
         String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
-        domainManager.updateDomain(domain, newDomainName, newNetworkDomain, modified);
+        domainManager.updateDomain(domain, newDomainName, newNetworkDomain, null, modified);
         s_logger.info("Successfully updated a domain[" + domain.getName() + "]");
     }
 

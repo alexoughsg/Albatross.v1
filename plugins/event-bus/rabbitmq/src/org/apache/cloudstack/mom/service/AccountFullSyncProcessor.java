@@ -122,11 +122,12 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
             String remoteName = BaseService.getAttrValue(jsonObject, "name");
             String remoteState = BaseService.getAttrValue(jsonObject, "state");
             String remoteNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
+            String remoteInitialName = BaseService.getAttrValue(jsonObject, "initialname");
             if (!account.getAccountName().equals(remoteName))   return false;
             if (!account.getState().toString().equals(remoteState)) return false;
-            if (account.getNetworkDomain() == null && remoteNetworkDomain == null)   return true;
-            if (account.getNetworkDomain() == null || remoteNetworkDomain == null)   return false;
-            return (account.getNetworkDomain().equals(remoteNetworkDomain));
+            if (!strCompare(account.getNetworkDomain(), remoteNetworkDomain))   return false;
+            if (!strCompare(account.getInitialName(), remoteInitialName)) return false;
+            return true;
         }
         catch(Exception ex)
         {
@@ -165,8 +166,6 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
         {
             String localInitialName = account.getInitialName();
             if (localInitialName == null)   continue;
-
-            if (!account.getAccountName().equals(remoteName))  continue;
 
             if (remoteInitialName == null && localInitialName.equals(remoteName))    return account;
             if (localInitialName.equals(remoteInitialName))    return account;
@@ -281,10 +280,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronize(account);
                 if (sync)
                 {
-                    s_logger.error("Account[" + account.getAccountName() + "] successfully synchronized");
+                    s_logger.info("Account[" + account.getAccountName() + "] successfully synchronized");
                     continue;
                 }
-                s_logger.error("Account[" + account.getAccountName() + "] not synchronized");
+                s_logger.info("Account[" + account.getAccountName() + "] not synchronized");
             }
             catch(Exception ex)
             {
@@ -302,11 +301,11 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingEvent(account);
                 if (sync)
                 {
-                    s_logger.error("Account[" + account.getAccountName() + "] successfully synchronized using events");
+                    s_logger.info("Account[" + account.getAccountName() + "] successfully synchronized using events");
 
                     continue;
                 }
-                s_logger.error("Account[" + account.getAccountName() + "] not synchronized using events");
+                s_logger.info("Account[" + account.getAccountName() + "] not synchronized using events");
             }
             catch(Exception ex)
             {
@@ -324,10 +323,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingInitialName(account);
                 if (sync)
                 {
-                    s_logger.error("Account[" + account.getAccountName() + "] successfully synchronized using initial names");
+                    s_logger.info("Account[" + account.getAccountName() + "] successfully synchronized using initial names");
                     continue;
                 }
-                s_logger.error("Account[" + account.getAccountName() + "] not synchronized using initial names");
+                s_logger.info("Account[" + account.getAccountName() + "] not synchronized using initial names");
             }
             catch(Exception ex)
             {
@@ -418,10 +417,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingRemoved(remoteJson);
                 if (sync)
                 {
-                    s_logger.error("AccountJSON[" + name + "] successfully synchronized using events");
+                    s_logger.info("AccountJSON[" + name + "] successfully synchronized using events");
                     continue;
                 }
-                s_logger.error("AccountJSON[" + name + "] not synchronized using events");
+                s_logger.info("AccountJSON[" + name + "] not synchronized using events");
             }
             catch(Exception ex)
             {
@@ -441,10 +440,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
                 boolean sync = synchronizeUsingInitialName(remoteJson);
                 if (sync)
                 {
-                    s_logger.error("AccountJSON[" + name + "] successfully synchronized using initial names");
+                    s_logger.info("AccountJSON[" + name + "] successfully synchronized using initial names");
                     continue;
                 }
-                s_logger.error("AccountJSON[" + name + "] not synchronized using initial names");
+                s_logger.info("AccountJSON[" + name + "] not synchronized using initial names");
             }
             catch(Exception ex)
             {
@@ -454,11 +453,6 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
 
         expungeProcessedLocals();
         expungeProcessedRemotes();
-    }
-
-    public List<AccountVO> getLocalProcessedList()
-    {
-        return processedLocalList;
     }
 
     @Override
@@ -519,8 +513,8 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
         for (JSONObject remoteJson : remoteList)
         {
             String accountName = BaseService.getAttrValue(remoteJson, "name");
-            Account found = accountDao.findAccountIncludingRemoved(accountName, localParent.getId());
-            if(found != null && found.getRemoved() == null)
+            Account found = accountDao.findActiveAccount(accountName, localParent.getId());
+            if(found != null)
             {
                 s_logger.info("AccountJSON[" + accountName + "] already created in the local region");
                 continue;
@@ -531,7 +525,7 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
                 // create this remote in the local region
                 Date created = getDate(remoteJson, "created");
                 localAccountManager.create(remoteJson, created);
-                s_logger.error("AccountJSON[" + accountName + "] successfully created in the local region");
+                s_logger.info("AccountJSON[" + accountName + "] successfully created in the local region");
             }
             catch(Exception ex)
             {
@@ -546,8 +540,8 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
         for (AccountVO account : localList)
         {
             String accountName = account.getAccountName();
-            Account found = accountDao.findAccountIncludingRemoved(accountName, localParent.getId());
-            if(found == null || found.getRemoved() != null)
+            Account found = accountDao.findActiveAccount(accountName, localParent.getId());
+            if(found == null)
             {
                 s_logger.info("Account[" + accountName + "] already removed from the local region");
                 continue;

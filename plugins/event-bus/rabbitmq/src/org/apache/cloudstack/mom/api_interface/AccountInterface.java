@@ -16,7 +16,6 @@ public class AccountInterface extends BaseInterface {
     {
         // command=listAccounts&response=json&sessionkey=XxjzeJWHV3S%2Brwq2m2EsYTSIYNE%3D&listAll=true&page=1&pagesize=20&_=1362457447296
 
-        //String paramStr = "command=listAccounts&listAll=true&page=1&pagesize=20&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         String paramStr = "command=listAccounts&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         if (domainId != null)   paramStr += "&domainId=" + domainId;
         JSONObject retJson = sendApacheGet(paramStr);
@@ -26,17 +25,32 @@ public class AccountInterface extends BaseInterface {
         }
 
         if (retJson.length() == 0)  return new JSONArray();
-        if (domainId == null)   return (JSONArray)retJson.get("account");
+        if (domainId == null)   return retJson.getJSONArray("account");
 
         JSONArray accountArray = new JSONArray();
-        JSONArray retArray = (JSONArray)retJson.get("account");
+        JSONArray retArray = retJson.getJSONArray("account");
         for(int index = 0; index < retArray.length(); index++)
         {
-            if (!((JSONObject)retArray.get(index)).get("domainid").equals(domainId)) continue;
-            accountArray.put((JSONObject) retArray.get(index));
+            if (!retArray.getJSONObject(index).get("domainid").equals(domainId)) continue;
+            accountArray.put(retArray.getJSONObject(index));
         }
 
         return accountArray;
+    }
+
+    public JSONObject findAccount(String domainId, String accountName) throws Exception
+    {
+        String paramStr = "command=listAccounts&domainid=" + domainId + "&name=" + accountName + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseInterface.hasAttribute(retJson, "account"))
+        {
+            return null;
+        }
+
+        if (retJson.length() == 0)  return null;
+
+        JSONArray retArray = (JSONArray)retJson.get("account");
+        return retArray.getJSONObject(0);
     }
 
     public JSONObject createAccount(String userName, String password, String email, String firstName, String lastName, String accountType, String domainId, String accountName, String accountDetails, String networkDomain, String timezone) throws Exception

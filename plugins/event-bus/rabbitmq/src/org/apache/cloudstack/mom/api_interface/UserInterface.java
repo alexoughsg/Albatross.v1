@@ -11,11 +11,20 @@ public class UserInterface extends BaseInterface {
         super(url);
     }
 
-    public JSONArray listUsers() throws Exception
+    public JSONArray listUsers(String domainId, String accountName) throws Exception
     {
         //String paramStr = "command=listUsers&listAll=true&page=1&pagesize=20&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         String paramStr = "command=listUsers&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
-        return (JSONArray)sendApacheGet(paramStr).get("user");
+        if (domainId != null)   paramStr += "&domainid=" + domainId;
+        if (accountName != null)   paramStr += "&account=" + accountName;
+        JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseInterface.hasAttribute(retJson, "user"))
+        {
+            return new JSONArray();
+        }
+
+        if (retJson.length() == 0)  return new JSONArray();
+        return retJson.getJSONArray("user");
     }
 
     public JSONObject createUser(String userName, String password, String email, String firstName, String lastName, String accountName, String domainId, String timezone) throws Exception

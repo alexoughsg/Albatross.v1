@@ -6,7 +6,6 @@ import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
-import com.cloud.user.dao.AccountDao;
 import com.cloud.utils.component.ComponentContext;
 import org.apache.log4j.Logger;
 
@@ -14,17 +13,17 @@ import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 
-public class LocalAccountManager extends FullScanner {
+public class LocalAccountManager {
 
     private static final Logger s_logger = Logger.getLogger(LocalAccountManager.class);
 
-    protected AccountDao accountDao;
+    //protected AccountDao accountDao;
     protected DomainDao domainDao;
     private AccountManager accountManager;
 
     public LocalAccountManager()
     {
-        this.accountDao = ComponentContext.getComponent(AccountDao.class);
+        //this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.accountManager = ComponentContext.getComponent(AccountManager.class);
     }
@@ -41,43 +40,14 @@ public class LocalAccountManager extends FullScanner {
         return null;
     }
 
-    // from com.cloud.user.AccountManagerImpl
-    /*private boolean doDisableAccount(long accountId) throws ConcurrentOperationException, ResourceUnavailableException
-    {
-        List<VMInstanceVO> vms = vmDao.listByAccountId(accountId);
-        boolean success = true;
-        for (VMInstanceVO vm : vms) {
-            try {
-                try {
-                    if (vm.getType() == VirtualMachine.Type.User) {
-                        itMgr.advanceStop(vm.getUuid(), false);
-                    } else if (vm.getType() == VirtualMachine.Type.DomainRouter) {
-                        itMgr.advanceStop(vm.getUuid(), false);
-                    } else {
-                        itMgr.advanceStop(vm.getUuid(), false);
-                    }
-                } catch (OperationTimedoutException ote) {
-                    s_logger.warn("Operation for stopping vm timed out, unable to stop vm " + vm.getHostName(), ote);
-                    success = false;
-                }
-            } catch (AgentUnavailableException aue) {
-                s_logger.warn("Agent running on host " + vm.getHostId() + " is unavailable, unable to stop vm " + vm.getHostName(), aue);
-                success = false;
-            }
-        }
-
-        return success;
-    }*/
-
-    public Object create(JSONObject jsonObject, final Date created)
+    public Object create(JSONObject jsonObject, final Date created) throws Exception
     {
         // find domain id
         String domainPath = BaseService.getAttrValue(jsonObject, "path");
         DomainVO domain = domainDao.findDomainByPath(domainPath);
         if (domain == null)
         {
-            s_logger.error("Failed to create a account because its domain[" + domainPath + "] cannot be found");
-            return null;
+            throw new Exception("Failed to create a account because its domain[" + domainPath + "] cannot be found");
         }
 
         // find account details
@@ -99,8 +69,9 @@ public class LocalAccountManager extends FullScanner {
         short accountType = Short.parseShort(BaseService.getAttrValue(jsonObject, "accounttype"));
         Map<String, String> accountDetails = null;
         String accountUUID = UUID.randomUUID().toString();
+        String initialName = BaseService.getAttrValue(jsonObject, "initialname");
 
-        return accountManager.createAccount(accountName, accountType, domainId, networkDomain, accountDetails, accountUUID, created, state);
+        return accountManager.createAccount(accountName, accountType, domainId, networkDomain, accountDetails, accountUUID, state, initialName, created);
     }
 
     public void update(Object object, JSONObject jsonObject, Date modified)
@@ -119,29 +90,29 @@ public class LocalAccountManager extends FullScanner {
 
         String newAccountName = BaseService.getAttrValue(jsonObject, "name");
         String newNetworkDomain = BaseService.getAttrValue(jsonObject, "networkdomain");
+        String initialName = BaseService.getAttrValue(jsonObject, "initialname");
         String stateStr = BaseService.getAttrValue(jsonObject, "state");
         Account.State state = findState(stateStr);
         Map<String, String> accountDetails = null;
 
-        accountManager.updateAccount(account, newAccountName, newNetworkDomain, accountDetails, modified, state);
+        accountManager.updateAccount(account, newAccountName, newNetworkDomain, accountDetails, state, initialName, modified);
         s_logger.info("Successfully updated an account[" + account.getAccountName() + "]");
     }
 
     public void lock(Object object, Date modified)
     {
         AccountVO account = (AccountVO)object;
-        account.setState(Account.State.locked);
+        /*account.setState(Account.State.locked);
         account.setModified(modified);
-        accountDao.update(account.getId(), account);
+        accountDao.update(account.getId(), account);*/
+        accountManager.lockAccount(account.getAccountName(), account.getDomainId(), account.getId(), modified);
         s_logger.info("Successfully locked an account[" + account.getAccountName() + "]");
     }
 
     public void disable(Object object, Date modified)
     {
         AccountVO account = (AccountVO)object;
-        //account.setState(Account.State.disabled);
-        //account.setModified(modified);
-        //accountDao.update(account.getId(), account);
+
         try
         {
             //doDisableAccount(account.getId());
@@ -157,10 +128,11 @@ public class LocalAccountManager extends FullScanner {
     public void enable(Object object, Date modified)
     {
         AccountVO account = (AccountVO)object;
-        account.setState(Account.State.enabled);
+        /*account.setState(Account.State.enabled);
         account.setModified(modified);
         account.setNeedsCleanup(false);
-        accountDao.update(account.getId(), account);
+        accountDao.update(account.getId(), account);*/
+        accountManager.enableUser(account.getId(), modified);
         s_logger.info("Successfully enabled an account[" + account.getAccountName() + "]");
     }
 

@@ -20,7 +20,7 @@ public class DomainInterface extends BaseInterface {
 
         String paramStr = "command=listDomains&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         if (listAll)    paramStr += "&listall" + listAll;
-        JSONObject retJson = (JSONObject)sendApacheGet(paramStr);
+        JSONObject retJson = sendApacheGet(paramStr);
         if (!BaseInterface.hasAttribute(retJson, "domain"))
         {
             return new JSONArray();

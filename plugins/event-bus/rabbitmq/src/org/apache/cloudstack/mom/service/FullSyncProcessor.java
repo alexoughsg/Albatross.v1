@@ -18,6 +18,13 @@ public abstract class FullSyncProcessor {
     protected List<JSONObject> remoteList;
     protected List<JSONObject> processedRemoteList = new ArrayList<JSONObject>();
 
+    protected boolean strCompare(String str1, String str2)
+    {
+        if (str1 == null && str2 == null)   return true;
+        if (str1 == null || str2 == null)   return false;
+        return (str1.equals(str2));
+    }
+
     protected Date getDate(JSONObject jsonObject, String attrName) throws Exception
     {
         TimeZone GMT_TIMEZONE = TimeZone.getTimeZone("GMT");

@@ -29,6 +29,7 @@ public interface DomainManager extends DomainService {
     Set<Long> getDomainChildrenIds(String parentDomainPath);
 
     Domain createDomain(String name, Long parentId, Long ownerId, String networkDomain, String domainUUID);
+    Domain createDomain(String name, Long parentId, Long ownerId, String networkDomain, String domainUUID, String initialName, Date created);
 
     Set<Long> getDomainParentIds(long domainId);
 
@@ -51,5 +52,5 @@ public interface DomainManager extends DomainService {
 
     boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain);
 
-    boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain, Date modified);
+    boolean updateDomain(DomainVO domain, String newDomainName, String newNetworkDomain, String initialName, Date modified);
 }
