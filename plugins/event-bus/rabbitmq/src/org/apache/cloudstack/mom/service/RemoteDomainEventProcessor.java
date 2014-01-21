@@ -7,9 +7,10 @@ import com.cloud.domain.DomainVO;
 
 public class RemoteDomainEventProcessor extends RemoteEventProcessor {
 
-    public RemoteDomainEventProcessor(String hostName, String userName, String password)
+    public RemoteDomainEventProcessor(String hostName, String endPoint, String userName, String password)
     {
         this.hostName = hostName;
+        this.endPoint = endPoint;
         this.userName = userName;
         this.password = password;
     }

@@ -14,9 +14,9 @@ public class AccountService extends BaseService {
     private static final Logger s_logger = Logger.getLogger(AccountService.class);
     private AccountInterface apiInterface;
 
-    public AccountService(String hostName, String userName, String password)
+    public AccountService(String hostName, String endPoint, String userName, String password)
     {
-        super(hostName, userName, password);
+        super(hostName, endPoint, userName, password);
         this.apiInterface = null;
     }
 
@@ -53,7 +53,7 @@ public class AccountService extends BaseService {
 
     private String findDomainId(String domainPath)
     {
-        DomainService domainService = new DomainService(this.hostName, this.userName, this.password);
+        DomainService domainService = new DomainService(this.hostName, this.endPoint, this.userName, this.password);
         JSONObject domainObj = domainService.findByPath(domainPath);
         if (domainObj == null)
         {

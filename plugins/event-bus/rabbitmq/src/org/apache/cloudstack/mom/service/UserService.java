@@ -14,9 +14,9 @@ public class UserService extends BaseService {
     private static final Logger s_logger = Logger.getLogger(UserService.class);
     private UserInterface apiInterface;
 
-    public UserService(String hostName, String userName, String password)
+    public UserService(String hostName, String endPoint, String userName, String password)
     {
-        super(hostName, userName, password);
+        super(hostName, endPoint, userName, password);
         this.apiInterface = null;
     }
 
@@ -170,7 +170,7 @@ public class UserService extends BaseService {
             }
 
             // find domain id
-            DomainService domainService = new DomainService(this.hostName, this.userName, this.password);
+            DomainService domainService = new DomainService(this.hostName, this.endPoint, this.userName, this.password);
             JSONObject domainObj = domainService.findByPath(domainPath);
             if (domainObj == null)
             {

@@ -6,6 +6,7 @@ import com.cloud.user.User;
 import com.cloud.user.UserVO;
 import org.apache.cloudstack.mom.service.AccountService;
 import org.apache.cloudstack.framework.events.Event;
+import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Method;
@@ -27,6 +28,7 @@ public class AccountSubscriber extends MultiRegionSubscriber {
 
         if (!isExecutable())    return;
 
+        regions = findRemoteRegions();
         process(event);
     }
 
@@ -44,25 +46,21 @@ public class AccountSubscriber extends MultiRegionSubscriber {
         }
 
         String methodName = event.getEventType().split("-")[1].toLowerCase();
-        for (int index = 0; index < this.regions.length; index++)
+        for (RegionVO region : regions)
         {
-            String hostName = this.regions[index][0];
-            String userName = this.regions[index][1];
-            String password = this.regions[index][2];
-
             try
             {
-                AccountService accountService = new AccountService(hostName, userName, password);
+                AccountService accountService = new AccountService(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
                 Method method = accountService.getClass().getMethod(methodName, User.class, Account.class, Domain.class, String.class);
                 method.invoke(accountService, user, account, domain, oldAccountName);
             }
             catch(NoSuchMethodException mex)
             {
-                s_logger.error(hostName + ": Not valid method[" + methodName + "]");
+                s_logger.error(region.getName() + ": Not valid method[" + methodName + "]");
             }
             catch(Exception ex)
             {
-                s_logger.error(hostName + ": Fail to invoke/process method[" + methodName + "]", ex);
+                s_logger.error(region.getName() + ": Fail to invoke/process method[" + methodName + "]", ex);
             }
         }
     }

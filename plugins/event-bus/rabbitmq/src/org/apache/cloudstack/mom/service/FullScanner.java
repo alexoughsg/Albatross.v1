@@ -1,228 +1,186 @@
 package org.apache.cloudstack.mom.service;
 
-import com.amazonaws.util.json.JSONArray;
-import com.amazonaws.util.json.JSONObject;
-import com.cloud.utils.DateUtil;
-import org.apache.log4j.Logger;
+import com.cloud.domain.Domain;
+import com.cloud.domain.DomainVO;
+import com.cloud.domain.dao.DomainDao;
+import com.cloud.user.AccountVO;
+import com.cloud.user.dao.AccountDao;
+import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.region.RegionVO;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 public class FullScanner {
 
-    private static final Logger s_logger = Logger.getLogger(DomainService.class);
+    @Inject
+    protected DomainDao domainDao;
+    @Inject
+    protected AccountDao accountDao;
 
-    public List findLocalList()
+    protected Date lastFullScan;
+    private List<RegionVO> regions;
+
+    public FullScanner()
     {
-        return new ArrayList();
+        this.domainDao = ComponentContext.getComponent(DomainDao.class);
+        this.accountDao = ComponentContext.getComponent(AccountDao.class);
+
+        this.lastFullScan = null;
+        this.regions = null;
     }
 
-    public JSONArray findRemoteList(String[] remoteServerInfo)
+    private boolean timeToFullScan()
     {
-        return new JSONArray();
+        if (lastFullScan == null)   return true;
+
+        long time1 = lastFullScan.getTime();
+        long time2 = (new Date()).getTime();
+        long diff = time2 - time1;
+        long secondInMillis = 1000;
+        long elapsedSeconds = diff / secondInMillis;
+        return elapsedSeconds > 60 * 5;
     }
 
-    protected Object find(JSONObject jsonObject, List localList)
+    public void fullScan(List<RegionVO> regions)
     {
-        return null;
+        if (!timeToFullScan())  return;
+
+        this.lastFullScan = new Date();
+        this.regions = regions;
+        fullDomainScan();
     }
 
-    protected boolean compare(Object obj, JSONObject jsonObject)
+    protected void fullDomainScan()
     {
-        return false;
+        List<DomainVO> localList = new ArrayList<DomainVO>();
+        DomainVO root = domainDao.findDomainByPath("/");
+        localList.add(root);
+        fullDomainScan(localList);
     }
 
-    protected Object create(JSONObject jsonObject, Date created)
+    protected void fullDomainScan(List<DomainVO> localList)
     {
-        return null;
-    }
-
-    protected void update(Object object, JSONObject jsonObject, Date modified)
-    {
-
-    }
-
-    protected void lock(Object object, Date modified)
-    {
-
-    }
-
-    protected void disable(Object object, Date modified)
-    {
-
-    }
-
-    protected void enable(Object object, Date modified)
-    {
-
-    }
-
-    protected void remove(Object object, Date removed)
-    {
-
-    }
-
-    protected JSONArray listEvents(String hostName, String userName, String password, Date created)
-    {
-        return null;
-    }
-
-    protected Date getDate(JSONObject jsonObject, String attrName)
-    {
-        try
+        for(DomainVO domain : localList)
         {
-            TimeZone GMT_TIMEZONE = TimeZone.getTimeZone("GMT");
-            return DateUtil.parseDateString(GMT_TIMEZONE, (String) jsonObject.get(attrName));
-        }
-        catch(Exception ex)
-        {
-            return null;
+            if (domain.getState().equals(Domain.State.Inactive))    continue;
+
+            fullDomainScan(domain);
+            fullAccountScan(domain);
+
+            // recursive call
+            List<DomainVO> childrenList = domainDao.findImmediateChildrenForParent(domain.getId());
+            fullDomainScan(childrenList);
         }
     }
 
-    protected Date isRemoteCreated(JSONObject remoteObject)
+    protected void fullDomainScan(DomainVO domain)
     {
-        Date created = null;
-        try
+        List<DomainFullSyncProcessor> syncProcessors = new ArrayList<DomainFullSyncProcessor>();
+
+        for (RegionVO region : regions)
         {
-            DateFormat dfParse = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-            created = dfParse.parse(BaseService.getAttrValue(remoteObject, "created"));
-        }
-        catch(Exception ex)
-        {
-            s_logger.error("Failed to find removal history because the given created is not valid", ex);
-            return null;
+            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            syncProcessor.synchronize();
+
+            syncProcessors.add(syncProcessor);
         }
 
-        return created;
-    }
-
-    protected void syncCreate(JSONObject remoteObject)
-    {
-        // if
-        //    1. this local resource has been deleted after being created and
-        //    2. local resource's deletion timestamp is later than the remote resource's creation timestamp,
-        // don't create a local resource
-        //
-        // otherwise, create a local resource with remote resource's create timestamp
-        Date created = isRemoteCreated(remoteObject);
-        if (created != null)
+        // arrange the left & processed resources
+        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
         {
-            create(remoteObject, created);
+            DomainFullSyncProcessor first = syncProcessors.get(idx);
+            DomainFullSyncProcessor second = syncProcessors.get(idx+1);
+            first.arrangeLocalResourcesToBeRemoved(second);
+            second.arrangeLocalResourcesToBeRemoved(first);
+            first.arrangeRemoteResourcesToBeCreated(second);
+            second.arrangeRemoteResourcesToBeCreated(first);
+        }
+
+        // create or remove unprocessed resources
+        for(int idx = 0; idx < syncProcessors.size(); idx++)
+        {
+            DomainFullSyncProcessor processor = syncProcessors.get(idx);
+            processor.createRemoteResourcesInLocal();
+            processor.removeLocalResources();
         }
     }
 
-    protected void syncUpdate(Object object, JSONObject jsonObject)
-    {
 
-    }
-
-    protected Date isRemoteRemovedOrRenamed(Object object, JSONArray eventList)
+    protected void fullAccountScan(DomainVO domain)
     {
-        return null;
-    }
+        List<AccountFullSyncProcessor> syncProcessors = new ArrayList<AccountFullSyncProcessor>();
 
-    protected boolean exist(Object object, ArrayList<Object> processedList)
-    {
-        return false;
-    }
-
-    protected void syncRemove(List localList, JSONArray events, ArrayList<Object> processedList)
-    {
-        for(Object object : localList)
+        for (RegionVO region : regions)
         {
-            if(exist(object, processedList))   continue;
+            AccountFullSyncProcessor syncProcessor = new AccountFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            syncProcessor.synchronize();
 
-            Date removed = isRemoteRemovedOrRenamed(object, events);
-            if (removed != null)
+            syncProcessors.add(syncProcessor);
+        }
+
+        // arrange the left & processed resources
+        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
+        {
+            AccountFullSyncProcessor first = syncProcessors.get(idx);
+            AccountFullSyncProcessor second = syncProcessors.get(idx+1);
+            first.arrangeLocalResourcesToBeRemoved(second);
+            second.arrangeLocalResourcesToBeRemoved(first);
+            first.arrangeRemoteResourcesToBeCreated(second);
+            second.arrangeRemoteResourcesToBeCreated(first);
+        }
+
+        // create or remove unprocessed resources
+        for(int idx = 0; idx < syncProcessors.size(); idx++)
+        {
+            AccountFullSyncProcessor processor = syncProcessors.get(idx);
+            processor.createRemoteResourcesInLocal();
+            processor.removeLocalResources();
+        }
+
+        // now start the user full scan for each account belonging to the given domain
+        for(AccountVO account : accountDao.findActiveAccountsForDomain(domain.getId()))
+        {
+            if (domain.getName().equals("ROOT") && account.getAccountName().equals("system"))
             {
-                remove(object, removed);
-                return;
+                // skip the 'system' user
+                continue;
             }
+            fullUserScan(account);
         }
     }
 
-    protected void synchronize(JSONObject remoteJson, List localList, ArrayList<Object> processedList)
+    protected void fullUserScan(AccountVO account)
     {
-        Object localObject = find(remoteJson, localList);
-        s_logger.info("Sync object : " + remoteJson);
-        if (localObject == null)
-        {
-            syncCreate(remoteJson);
-        }
-        else
-        {
-            syncUpdate(localObject, remoteJson);
-            processedList.add(localObject);
-        }
-    }
+        List<UserFullSyncProcessor> syncProcessors = new ArrayList<UserFullSyncProcessor>();
 
-    protected void synchronize(String[] remoteServerInfo, ArrayList<Object> processedList)
-    {
-        s_logger.info("Starting to full scan objects with region : " + remoteServerInfo[0]);
-        JSONArray remoteList = findRemoteList(remoteServerInfo);
-        List localList = findLocalList();
-
-        for(int idx = 0; idx < remoteList.length(); idx++)
+        for (RegionVO region : regions)
         {
-            try
-            {
-                JSONObject remoteJson = remoteList.getJSONObject(idx);
-                synchronize(remoteJson, localList, processedList);
-            }
-            catch (Exception ex)
-            {
-                s_logger.error("remote objects : " + remoteList);
-                s_logger.error("Failed in synchronize object in index[" + idx + "]", ex);
-            }
-        }
-    }
+            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), account.getId());
+            syncProcessor.synchronize();
 
-    public void refreshAll(String[][] remoteRegions)
-    {
-        ArrayList<Object> processedList = new ArrayList<Object>();
-        List localListBeforeProcess = findLocalList();
-
-        for (String[] remoteRegion : remoteRegions)
-        {
-            try
-            {
-                synchronize(remoteRegion, processedList);
-            }
-            catch(Exception ex)
-            {
-                s_logger.error("Full scan failed with remote region[" + remoteRegion[0] + "]", ex);
-            }
+            syncProcessors.add(syncProcessor);
         }
 
-        // now process the local resources that were not sync'ed
-        for(String[] remoteRegion : remoteRegions)
+        // arrange the left & processed resources
+        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
         {
-            s_logger.info("Verify objects with region : " + remoteRegion[0]);
+            UserFullSyncProcessor first = syncProcessors.get(idx);
+            UserFullSyncProcessor second = syncProcessors.get(idx+1);
+            first.arrangeLocalResourcesToBeRemoved(second);
+            second.arrangeLocalResourcesToBeRemoved(first);
+            first.arrangeRemoteResourcesToBeCreated(second);
+            second.arrangeRemoteResourcesToBeCreated(first);
+        }
 
-            String hostName = remoteRegion[0];
-            String userName = remoteRegion[1];
-            String password = remoteRegion[2];
-            try
-            {
-                Date created = null;
-                JSONArray events = listEvents(hostName, userName, password, created);
-                if (events == null || events.length() == 0)
-                {
-                    s_logger.info("Skipping verification because there is no remove event found in the remote.");
-                    continue;
-                }
-                syncRemove(localListBeforeProcess, events, processedList);
-                s_logger.info("Verification completed with region : " + remoteRegion[0]);
-            }
-            catch(Exception ex)
-            {
-                s_logger.error("Verification failed with remote region[" + remoteRegion[0] + "]", ex);
-            }
+        // create or remove unprocessed resources
+        for(int idx = 0; idx < syncProcessors.size(); idx++)
+        {
+            UserFullSyncProcessor processor = syncProcessors.get(idx);
+            processor.createRemoteResourcesInLocal();
+            processor.removeLocalResources();
         }
     }
 }

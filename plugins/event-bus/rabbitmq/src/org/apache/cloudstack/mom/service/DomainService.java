@@ -12,9 +12,9 @@ public class DomainService extends BaseService {
     private static final Logger s_logger = Logger.getLogger(DomainService.class);
     private DomainInterface apiInterface;
 
-    public DomainService(String hostName, String userName, String password)
+    public DomainService(String hostName, String endPoint, String userName, String password)
     {
-        super(hostName, userName, password);
+        super(hostName, endPoint, userName, password);
         this.apiInterface = null;
     }
 

@@ -3,6 +3,7 @@ package org.apache.cloudstack.mom.rabbitmq;
 import com.cloud.domain.Domain;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.mom.service.DomainService;
+import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.Method;
@@ -23,6 +24,7 @@ public class DomainSubscriber extends MultiRegionSubscriber {
 
         if (!isExecutable())    return;
 
+        regions = findRemoteRegions();
         process(event);
     }
 
@@ -33,25 +35,21 @@ public class DomainSubscriber extends MultiRegionSubscriber {
         Domain domain = this.domainDao.findByUuidIncludingRemoved(entityUUID);
 
         String methodName = event.getEventType().split("-")[1].toLowerCase();
-        for (int index = 0; index < this.regions.length; index++)
+        for(RegionVO region : regions)
         {
-            String hostName = this.regions[index][0];
-            String userName = this.regions[index][1];
-            String password = this.regions[index][2];
-
             try
             {
-                DomainService domainService = new DomainService(hostName, userName, password);
+                DomainService domainService = new DomainService(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
                 Method method = domainService.getClass().getMethod(methodName, Domain.class, String.class);
                 method.invoke(domainService, domain, oldDomainName);
             }
             catch(NoSuchMethodException mex)
             {
-                s_logger.error(hostName + ": Not valid method[" + methodName + "]");
+                s_logger.error(region.getName() + ": Not valid method[" + methodName + "]");
             }
             catch(Exception ex)
             {
-                s_logger.error(hostName + ": Fail to invoke/process method[" + methodName + "]", ex);
+                s_logger.error(region.getName() + ": Fail to invoke/process method[" + methodName + "]", ex);
             }
         }
     }

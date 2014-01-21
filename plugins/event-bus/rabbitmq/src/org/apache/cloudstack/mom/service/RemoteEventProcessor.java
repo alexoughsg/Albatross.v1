@@ -8,6 +8,7 @@ import java.util.Date;
 public abstract class RemoteEventProcessor {
 
     protected String hostName;
+    protected String endPoint;
     protected String userName;
     protected String password;
 
@@ -18,7 +19,7 @@ public abstract class RemoteEventProcessor {
 
     protected JSONArray listEvents(Date created, String eventType) throws Exception
     {
-        BaseService baseService = new BaseService(hostName, userName, password);
+        BaseService baseService = new BaseService(hostName, endPoint, userName, password);
         return baseService.listEvents(eventType, "completed", created, null);
     }
 

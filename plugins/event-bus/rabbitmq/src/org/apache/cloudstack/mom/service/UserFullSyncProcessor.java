@@ -30,9 +30,10 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
     private LocalUserManager localUserManager;
     private RemoteUserEventProcessor eventProcessor;
 
-    public UserFullSyncProcessor(String hostName, String userName, String password, Long parentAccountId)
+    public UserFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentAccountId)
     {
         this.hostName = hostName;
+        this.endPoint = endPoint;
         this.userName = userName;
         this.password = password;
 
@@ -54,12 +55,12 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
         }*/
 
         DomainVO domain = domainDao.findById(localParent.getDomainId());
-        DomainService domainService = new DomainService(hostName, userName, password);
+        DomainService domainService = new DomainService(hostName, endPoint, userName, password);
         JSONObject domainJson = domainService.findDomain(domain.getLevel(), domain.getName(), domain.getPath());
         String remoteDomainId = BaseService.getAttrValue(domainJson, "id");
-        AccountService accountService = new AccountService(hostName, userName, password);
+        AccountService accountService = new AccountService(hostName, endPoint, userName, password);
         remoteParent = accountService.findAccount(remoteDomainId, localParent.getAccountName());
-        UserService userService = new UserService(hostName, userName, password);
+        UserService userService = new UserService(hostName, endPoint, userName, password);
         JSONArray remoteArray = userService.list(remoteDomainId, localParent.getAccountName());
         remoteList = new ArrayList<JSONObject>();
         for(int idx = 0; idx < remoteArray.length(); idx++)
@@ -75,7 +76,7 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
         }
 
         localUserManager = new LocalUserManager();
-        eventProcessor = new RemoteUserEventProcessor(hostName, userName, password);
+        eventProcessor = new RemoteUserEventProcessor(hostName, endPoint, userName, password);
     }
 
     private void syncAttributes(UserVO user, JSONObject remoteJson) throws Exception

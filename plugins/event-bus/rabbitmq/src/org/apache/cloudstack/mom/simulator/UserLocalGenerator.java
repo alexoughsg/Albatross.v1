@@ -2,52 +2,22 @@ package org.apache.cloudstack.mom.simulator;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
-import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.Account;
 import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
-import com.cloud.user.dao.AccountDao;
-import com.cloud.user.dao.UserDao;
-import com.cloud.utils.component.ComponentContext;
 import org.apache.cloudstack.mom.service.LocalUserManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
-import java.util.List;
-import java.util.TimeZone;
-import java.util.Random;
 
 public class UserLocalGenerator extends LocalGenerator {
     private static final Logger s_logger = Logger.getLogger(UserLocalGenerator.class);
 
-    private UserDao userDao;
-    private AccountDao accountDao;
-    private DomainDao domainDao;
     private LocalUserManager localUserManager;
 
     public UserLocalGenerator()
     {
-        this.userDao = ComponentContext.getComponent(UserDao.class);
-        this.accountDao = ComponentContext.getComponent(AccountDao.class);
-        this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.localUserManager = new LocalUserManager();
-    }
-
-    protected UserVO randSelect()
-    {
-        List<UserVO> userList = userDao.listAll();
-        Random rand = new Random();
-        int num = rand.nextInt(userList.size());
-        UserVO user = userList.get(num);
-        return user;
-    }
-
-    protected String randSelectTimezone()
-    {
-        String[] ids = TimeZone.getAvailableIDs();
-        Random rand = new Random();
-        int num = rand.nextInt(ids.length);
-        return TimeZone.getTimeZone(ids[num]).getDisplayName();
     }
 
     public UserVO create()
@@ -56,8 +26,7 @@ public class UserLocalGenerator extends LocalGenerator {
         JSONObject userJson = new JSONObject();
 
         // select a random user
-        UserVO randUser = randSelect();
-        AccountVO account = accountDao.findById(randUser.getAccountId());
+        AccountVO account = randAccountSelect(false);
         DomainVO domain = domainDao.findById(account.getDomainId());
 
         // create a random string for a new user
@@ -66,7 +35,7 @@ public class UserLocalGenerator extends LocalGenerator {
         String firstName = "FN" + generateRandString();
         String lastName = "LN" + generateRandString();
         String email = "EM" + generateRandString() + "@a.com";
-        String timezone = randSelectTimezone();
+        String timezone = randUserTimezoneSelect();
 
         try
         {
@@ -96,7 +65,7 @@ public class UserLocalGenerator extends LocalGenerator {
         JSONObject userJson = new JSONObject();
 
         // select a random user
-        if(user == null)    user = randSelect();
+        if(user == null)    user = randUserSelect();
         if (!user.getState().equals(Account.State.enabled))
         {
             localUserManager.enable(user, modified);
@@ -108,7 +77,7 @@ public class UserLocalGenerator extends LocalGenerator {
         String firstName = "FN_" + generateRandString();
         String lastName = "LN" + generateRandString();
         String email = "EM" + generateRandString() + "@a.com";
-        String timezone = randSelectTimezone();
+        String timezone = randUserTimezoneSelect();
         String apikey = "AK" + generateRandString();
         String scretkey = "SK" + generateRandString();
 
@@ -140,7 +109,7 @@ public class UserLocalGenerator extends LocalGenerator {
         Date modified = generateRandDate();
 
         // select a random user
-        if(user == null)    user = randSelect();
+        if(user == null)    user = randUserSelect();
 
         localUserManager.lock(user, modified);
         s_logger.info("Successfully locked user[" + user.getUsername() + "]");
@@ -153,7 +122,7 @@ public class UserLocalGenerator extends LocalGenerator {
         Date modified = generateRandDate();
 
         // select a random user
-        if(user == null)    user = randSelect();
+        if(user == null)    user = randUserSelect();
 
         localUserManager.disable(user, modified);
         s_logger.info("Successfully disabled user[" + user.getUsername() + "]");
@@ -166,7 +135,7 @@ public class UserLocalGenerator extends LocalGenerator {
         Date modified = generateRandDate();
 
         // select a random user
-        if(user == null)    user = randSelect();
+        if(user == null)    user = randUserSelect();
 
         localUserManager.enable(user, modified);
         s_logger.info("Successfully enabled user[" + user.getUsername() + "]");
@@ -179,7 +148,7 @@ public class UserLocalGenerator extends LocalGenerator {
         Date removed = generateRandDate();
 
         // select a random user
-        if(user == null)    user = randSelect();
+        if(user == null)    user = randUserSelect();
 
         localUserManager.remove(user, removed);
         s_logger.info("Successfully removed user[" + user.getUsername() + "]");

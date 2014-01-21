@@ -11,6 +11,7 @@ import java.util.TimeZone;
 public abstract class FullSyncProcessor {
 
     protected String hostName;
+    protected String endPoint;
     protected String userName;
     protected String password;
 

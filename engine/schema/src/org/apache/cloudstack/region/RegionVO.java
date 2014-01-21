@@ -35,11 +35,20 @@ public class RegionVO implements Region {
     @Column(name = "end_point")
     private String endPoint;
 
+    @Column(name = "username")
+    private String userName = null;
+
+    @Column(name = "password")
+    private String password = null;
+
     @Column(name = "gslb_service_enabled")
     private boolean gslbEnabled;
 
     @Column(name = "portableip_service_enabled")
     private boolean portableipEnabled;
+
+    @Column(name = "active")
+    private boolean active;
 
     public boolean getGslbEnabled() {
         return gslbEnabled;
@@ -75,6 +84,24 @@ public class RegionVO implements Region {
     }
 
     @Override
+    public String getUserName() { return userName; }
+
+    @Override
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public void setPassword(String name) {
+        this.password = password;
+    }
+
+    @Override
     public String getEndPoint() {
         return endPoint;
     }
@@ -82,6 +109,12 @@ public class RegionVO implements Region {
     public void setEndPoint(String endPoint) {
         this.endPoint = endPoint;
     }
+
+    @Override
+    public boolean isActive() { return active; }
+
+    @Override
+    public void setActive(boolean active) { this.active = active; }
 
     @Override
     public boolean checkIfServiceEnabled(Service service) {

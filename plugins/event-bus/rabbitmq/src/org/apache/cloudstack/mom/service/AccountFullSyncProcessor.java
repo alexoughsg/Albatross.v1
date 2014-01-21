@@ -28,9 +28,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
     private LocalAccountManager localAccountManager;
     private RemoteAccountEventProcessor eventProcessor;
 
-    public AccountFullSyncProcessor(String hostName, String userName, String password, Long parentDomainId)
+    public AccountFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId)
     {
         this.hostName = hostName;
+        this.endPoint = endPoint;
         this.userName = userName;
         this.password = password;
 
@@ -52,10 +53,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
             }
         }
 
-        DomainService domainService = new DomainService(hostName, userName, password);
+        DomainService domainService = new DomainService(hostName, endPoint, userName, password);
         remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
         String remoteParentAccountId = BaseService.getAttrValue(remoteParent, "id");
-        AccountService accountService = new AccountService(hostName, userName, password);
+        AccountService accountService = new AccountService(hostName, endPoint, userName, password);
         JSONArray remoteArray = accountService.list(remoteParentAccountId);
         remoteList = new ArrayList<JSONObject>();
         for(int idx = 0; idx < remoteArray.length(); idx++)
@@ -71,7 +72,7 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
         }
 
         localAccountManager = new LocalAccountManager();
-        eventProcessor = new RemoteAccountEventProcessor(hostName, userName, password);
+        eventProcessor = new RemoteAccountEventProcessor(hostName, endPoint, userName, password);
     }
 
     private void syncAttributes(AccountVO account, JSONObject remoteJson) throws Exception

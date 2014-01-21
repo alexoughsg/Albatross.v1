@@ -15,16 +15,19 @@ public class BaseService {
     private static final Logger s_logger = Logger.getLogger(BaseService.class);
 
     protected String hostName;
+    protected String endPoint;
     protected String userName;
     protected String password;
     protected String url;
 
-    public BaseService(String hostName, String userName, String password)
+    public BaseService(String hostName, String endPoint, String userName, String password)
     {
         this.hostName = hostName;
+        this.endPoint = endPoint;
         this.userName = userName;
         this.password = password;
-        this.url = "http://" + hostName + ":8080/client/api";
+        //this.url = "http://" + hostName + ":8080/client/api";
+        this.url = endPoint + "api";
     }
 
     protected BaseInterface getInterface()

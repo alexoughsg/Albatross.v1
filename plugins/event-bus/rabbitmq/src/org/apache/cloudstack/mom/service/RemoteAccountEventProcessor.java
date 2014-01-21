@@ -9,9 +9,10 @@ import com.cloud.utils.component.ComponentContext;
 
 public class RemoteAccountEventProcessor extends RemoteEventProcessor {
 
-    public RemoteAccountEventProcessor(String hostName, String userName, String password)
+    public RemoteAccountEventProcessor(String hostName, String endPoint, String userName, String password)
     {
         this.hostName = hostName;
+        this.endPoint = endPoint;
         this.userName = userName;
         this.password = password;
     }

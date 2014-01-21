@@ -27,9 +27,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     private LocalDomainManager localDomainManager;
     private RemoteDomainEventProcessor eventProcessor;
 
-    public DomainFullSyncProcessor(String hostName, String userName, String password, Long parentDomainId)
+    public DomainFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId)
     {
         this.hostName = hostName;
+        this.endPoint = endPoint;
         this.userName = userName;
         this.password = password;
 
@@ -46,7 +47,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
             localList.remove(domain);
         }
 
-        DomainService domainService = new DomainService(hostName, userName, password);
+        DomainService domainService = new DomainService(hostName, endPoint, userName, password);
         remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
         String remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
         JSONArray remoteArray = domainService.listChildren(remoteParentDomainId, false);
@@ -64,7 +65,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         }
 
         localDomainManager = new LocalDomainManager();
-        eventProcessor = new RemoteDomainEventProcessor(hostName, userName, password);
+        eventProcessor = new RemoteDomainEventProcessor(hostName, endPoint, userName, password);
     }
 
     private void syncAttributes(DomainVO domain, JSONObject remoteJson) throws Exception

@@ -32,6 +32,10 @@ ALTER TABLE account ADD initial_name varchar(255) DEFAULT NULL;
 ALTER TABLE user ADD modified TIMESTAMP NULL;
 ALTER TABLE user ADD initial_name varchar(255) DEFAULT NULL;
 
+ALTER TABLE region ADD username varchar(255) DEFAULT NULL;
+ALTER TABLE region ADD password varchar(255) DEFAULT NULL;
+ALTER TABLE region ADD active tinyint(1) unsigned NOT NULL DEFAULT '1'
+
 UPDATE domain SET created = UTC_TIMESTAMP() where created IS NULL;
 UPDATE domain SET modified = UTC_TIMESTAMP() where modified IS NULL;
 UPDATE account SET created = UTC_TIMESTAMP() where created IS NULL;

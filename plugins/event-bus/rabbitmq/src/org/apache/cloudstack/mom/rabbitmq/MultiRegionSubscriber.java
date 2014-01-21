@@ -1,9 +1,6 @@
 package org.apache.cloudstack.mom.rabbitmq;
 
-import com.cloud.domain.Domain;
-import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
-import com.cloud.user.AccountVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
@@ -13,14 +10,13 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.framework.events.EventSubscriber;
-import org.apache.cloudstack.mom.service.AccountFullSyncProcessor;
-import org.apache.cloudstack.mom.service.DomainFullSyncProcessor;
-import org.apache.cloudstack.mom.service.UserFullSyncProcessor;
+import org.apache.cloudstack.mom.service.FullScanner;
+import org.apache.cloudstack.region.RegionVO;
+import org.apache.cloudstack.region.dao.RegionDao;
 import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
 
@@ -38,12 +34,12 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     protected AccountDao accountDao;
     @Inject
     protected UserDao userDao;
+    @Inject
+    protected RegionDao regionDao;
 
-    protected String[][] regions = {
-            //{"10.88.90.82", "admin", "password"},     // sandbox01
-            {"10.88.90.83", "admin", "password"},       // sandbox02
-    };
+    protected List<RegionVO> regions;
 
+    protected static FullScanner fullScanner = new FullScanner();
 
     public MultiRegionSubscriber(int id)
     {
@@ -52,6 +48,29 @@ public class MultiRegionSubscriber  implements EventSubscriber {
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.userDao = ComponentContext.getComponent(UserDao.class);
+        this.regionDao = ComponentContext.getComponent(RegionDao.class);
+
+        this.regions = findRemoteRegions();
+    }
+
+    protected List<RegionVO> findRemoteRegions()
+    {
+        List<RegionVO> regions = regionDao.listAll();
+        for (int idx = regions.size()-1; idx >= 0; idx--)
+        {
+            RegionVO region = regions.get(idx);
+            if (region.getName().equals("Local"))
+            {
+                regions.remove(region);
+                continue;
+            }
+            if (!region.isActive())
+            {
+                regions.remove(region);
+                continue;
+            }
+        }
+        return regions;
     }
 
     protected boolean isCompleted(String status)
@@ -74,7 +93,7 @@ public class MultiRegionSubscriber  implements EventSubscriber {
         return true;
     }
 
-        @Override
+    @Override
     public void onEvent(Event event)
     {
         s_logger.info("HANDLER" + id + " Category: " + event.getEventCategory() + " type: " + event.getEventType() +
@@ -89,148 +108,12 @@ public class MultiRegionSubscriber  implements EventSubscriber {
             s_logger.info("Key: " + e.getKey() + ", Value: " + e.getValue());
         }
 
-        // if the event is user login from outside, do the full scan
-        String eventType = event.getEventType();
-        String description = event.getDescription();
-        if (eventType.equals("USER-LOGIN") && !description.contains("127.0.0.1"))
-        {
-            fullScan();
-        }
+        fullScan();
     }
 
-    public void fullScan()
+    protected void fullScan()
     {
-        fullDomainScan();
-    }
-
-    protected void fullDomainScan()
-    {
-        List<DomainVO> localList = new ArrayList<DomainVO>();
-        DomainVO root = domainDao.findDomainByPath("/");
-        localList.add(root);
-        fullDomainScan(localList);
-    }
-
-    protected void fullDomainScan(List<DomainVO> localList)
-    {
-        for(DomainVO domain : localList)
-        {
-            if (domain.getState().equals(Domain.State.Inactive))    continue;
-
-            fullDomainScan(domain);
-            fullAccountScan(domain);
-
-            // recursive call
-            List<DomainVO> childrenList = domainDao.findImmediateChildrenForParent(domain.getId());
-            fullDomainScan(childrenList);
-        }
-    }
-
-    protected void fullDomainScan(DomainVO domain)
-    {
-        List<DomainFullSyncProcessor> syncProcessors = new ArrayList<DomainFullSyncProcessor>();
-
-        for (String[] region : regions)
-        {
-            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region[0], region[1], region[2], domain.getId());
-            syncProcessor.synchronize();
-
-            syncProcessors.add(syncProcessor);
-        }
-
-        // arrange the left & processed resources
-        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
-        {
-            DomainFullSyncProcessor first = syncProcessors.get(idx);
-            DomainFullSyncProcessor second = syncProcessors.get(idx+1);
-            first.arrangeLocalResourcesToBeRemoved(second);
-            second.arrangeLocalResourcesToBeRemoved(first);
-            first.arrangeRemoteResourcesToBeCreated(second);
-            second.arrangeRemoteResourcesToBeCreated(first);
-        }
-
-        // create or remove unprocessed resources
-        for(int idx = 0; idx < syncProcessors.size(); idx++)
-        {
-            DomainFullSyncProcessor processor = syncProcessors.get(idx);
-            processor.createRemoteResourcesInLocal();
-            processor.removeLocalResources();
-        }
-    }
-
-
-    protected void fullAccountScan(DomainVO domain)
-    {
-        List<AccountFullSyncProcessor> syncProcessors = new ArrayList<AccountFullSyncProcessor>();
-
-        for (String[] region : regions)
-        {
-            AccountFullSyncProcessor syncProcessor = new AccountFullSyncProcessor(region[0], region[1], region[2], domain.getId());
-            syncProcessor.synchronize();
-
-            syncProcessors.add(syncProcessor);
-        }
-
-        // arrange the left & processed resources
-        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
-        {
-            AccountFullSyncProcessor first = syncProcessors.get(idx);
-            AccountFullSyncProcessor second = syncProcessors.get(idx+1);
-            first.arrangeLocalResourcesToBeRemoved(second);
-            second.arrangeLocalResourcesToBeRemoved(first);
-            first.arrangeRemoteResourcesToBeCreated(second);
-            second.arrangeRemoteResourcesToBeCreated(first);
-        }
-
-        // create or remove unprocessed resources
-        for(int idx = 0; idx < syncProcessors.size(); idx++)
-        {
-            AccountFullSyncProcessor processor = syncProcessors.get(idx);
-            processor.createRemoteResourcesInLocal();
-            processor.removeLocalResources();
-        }
-
-        // now start the user full scan for each account belonging to the given domain
-        for(AccountVO account : accountDao.findActiveAccountsForDomain(domain.getId()))
-        {
-            if (domain.getName().equals("ROOT") && account.getAccountName().equals("system"))
-            {
-                // skip the 'system' user
-                continue;
-            }
-            fullUserScan(account);
-        }
-    }
-
-    protected void fullUserScan(AccountVO account)
-    {
-        List<UserFullSyncProcessor> syncProcessors = new ArrayList<UserFullSyncProcessor>();
-
-        for (String[] region : regions)
-        {
-            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region[0], region[1], region[2], account.getId());
-            syncProcessor.synchronize();
-
-            syncProcessors.add(syncProcessor);
-        }
-
-        // arrange the left & processed resources
-        for(int idx = 0; idx < syncProcessors.size() - 1; idx++)
-        {
-            UserFullSyncProcessor first = syncProcessors.get(idx);
-            UserFullSyncProcessor second = syncProcessors.get(idx+1);
-            first.arrangeLocalResourcesToBeRemoved(second);
-            second.arrangeLocalResourcesToBeRemoved(first);
-            first.arrangeRemoteResourcesToBeCreated(second);
-            second.arrangeRemoteResourcesToBeCreated(first);
-        }
-
-        // create or remove unprocessed resources
-        for(int idx = 0; idx < syncProcessors.size(); idx++)
-        {
-            UserFullSyncProcessor processor = syncProcessors.get(idx);
-            processor.createRemoteResourcesInLocal();
-            processor.removeLocalResources();
-        }
+        regions = findRemoteRegions();
+        fullScanner.fullScan(regions);
     }
 }
