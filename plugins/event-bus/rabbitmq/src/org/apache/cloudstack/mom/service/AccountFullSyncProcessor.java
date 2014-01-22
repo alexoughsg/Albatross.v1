@@ -55,9 +55,9 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
 
         DomainService domainService = new DomainService(hostName, endPoint, userName, password);
         remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
-        String remoteParentAccountId = BaseService.getAttrValue(remoteParent, "id");
+        String remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
         AccountService accountService = new AccountService(hostName, endPoint, userName, password);
-        JSONArray remoteArray = accountService.list(remoteParentAccountId);
+        JSONArray remoteArray = accountService.list(remoteParentDomainId);
         remoteList = new ArrayList<JSONObject>();
         for(int idx = 0; idx < remoteArray.length(); idx++)
         {

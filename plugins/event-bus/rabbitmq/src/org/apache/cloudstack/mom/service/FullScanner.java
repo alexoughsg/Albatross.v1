@@ -3,7 +3,6 @@ package org.apache.cloudstack.mom.service;
 import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
-import com.cloud.user.AccountVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.utils.component.ComponentContext;
 import org.apache.cloudstack.region.RegionVO;
@@ -69,6 +68,7 @@ public class FullScanner {
 
             fullDomainScan(domain);
             fullAccountScan(domain);
+            fullUserScan(domain);
 
             // recursive call
             List<DomainVO> childrenList = domainDao.findImmediateChildrenForParent(domain.getId());
@@ -108,7 +108,6 @@ public class FullScanner {
         }
     }
 
-
     protected void fullAccountScan(DomainVO domain)
     {
         List<AccountFullSyncProcessor> syncProcessors = new ArrayList<AccountFullSyncProcessor>();
@@ -139,26 +138,15 @@ public class FullScanner {
             processor.createRemoteResourcesInLocal();
             processor.removeLocalResources();
         }
-
-        // now start the user full scan for each account belonging to the given domain
-        for(AccountVO account : accountDao.findActiveAccountsForDomain(domain.getId()))
-        {
-            if (domain.getName().equals("ROOT") && account.getAccountName().equals("system"))
-            {
-                // skip the 'system' user
-                continue;
-            }
-            fullUserScan(account);
-        }
     }
 
-    protected void fullUserScan(AccountVO account)
+    protected void fullUserScan(DomainVO domain)
     {
         List<UserFullSyncProcessor> syncProcessors = new ArrayList<UserFullSyncProcessor>();
 
         for (RegionVO region : regions)
         {
-            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), account.getId());
+            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
             syncProcessor.synchronize();
 
             syncProcessors.add(syncProcessor);

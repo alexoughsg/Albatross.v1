@@ -23,14 +23,20 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
     protected AccountDao accountDao;
     protected DomainDao domainDao;
 
+    protected DomainVO localParentDomain;
     protected AccountVO localParent;
     protected List<UserVO> localList;
     protected List<UserVO> processedLocalList = new ArrayList<UserVO>();
 
+    protected List<AccountVO> localAccountList;
+
+    protected JSONObject remoteParentDomain;
+    protected List<JSONObject> remoteAccountList;
+
     private LocalUserManager localUserManager;
     private RemoteUserEventProcessor eventProcessor;
 
-    public UserFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentAccountId)
+    public UserFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId)
     {
         this.hostName = hostName;
         this.endPoint = endPoint;
@@ -41,27 +47,35 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
 
-        localParent = accountDao.findById(parentAccountId);
-        DomainVO parentDomain = domainDao.findById(localParent.getDomainId());
-        localList = userDao.listByAccount(localParent.getId());
-        /*if (parentDomain.getName().equals("ROOT") && localParent.getAccountName().equals("admin"))
+        localParentDomain = domainDao.findById(parentDomainId);
+        localAccountList = accountDao.findActiveAccountsForDomain(localParentDomain.getId());
+        localList = new ArrayList<UserVO>();
+        for (AccountVO account : localAccountList)
         {
-            for(int idx = localList.size()-1; idx >= 0; idx--)
-            {
-                UserVO user = localList.get(idx);
-                if (!user.getUsername().equals("admin"))   continue;
-                localList.remove(user);
-            }
-        }*/
+            if (localParentDomain.getName().equals("ROOT") && account.getAccountName().equals("system"))   continue;
+            localList.addAll(userDao.listByAccount(account.getId()));
+        }
 
-        DomainVO domain = domainDao.findById(localParent.getDomainId());
         DomainService domainService = new DomainService(hostName, endPoint, userName, password);
-        JSONObject domainJson = domainService.findDomain(domain.getLevel(), domain.getName(), domain.getPath());
-        String remoteDomainId = BaseService.getAttrValue(domainJson, "id");
+        JSONObject domainJson = domainService.findDomain(localParentDomain.getLevel(), localParentDomain.getName(), localParentDomain.getPath());
+        String remoteParentDomainId = BaseService.getAttrValue(domainJson, "id");
         AccountService accountService = new AccountService(hostName, endPoint, userName, password);
-        remoteParent = accountService.findAccount(remoteDomainId, localParent.getAccountName());
+        JSONArray remoteAccounts = accountService.list(remoteParentDomainId);
+        remoteAccountList = new ArrayList<JSONObject>();
+        for(int idx = 0; idx < remoteAccounts.length(); idx++)
+        {
+            try
+            {
+                remoteAccountList.add(remoteAccounts.getJSONObject(idx));
+            }
+            catch(Exception ex)
+            {
+
+            }
+        }
         UserService userService = new UserService(hostName, endPoint, userName, password);
-        JSONArray remoteArray = userService.list(remoteDomainId, localParent.getAccountName());
+        //JSONArray remoteArray = userService.list(remoteDomainId, localParent.getAccountName());
+        JSONArray remoteArray = userService.list(remoteParentDomainId, null);
         remoteList = new ArrayList<JSONObject>();
         for(int idx = 0; idx < remoteArray.length(); idx++)
         {
@@ -77,6 +91,27 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
 
         localUserManager = new LocalUserManager();
         eventProcessor = new RemoteUserEventProcessor(hostName, endPoint, userName, password);
+    }
+
+    private AccountVO getAccount(UserVO user)
+    {
+        for (AccountVO account : localAccountList)
+        {
+            if (account.getId() == user.getAccountId()) return account;
+        }
+        return null;
+    }
+
+    private JSONObject getAccount(JSONObject userJson)
+    {
+        String accountName = BaseService.getAttrValue(userJson, "account");
+
+        for (JSONObject accountJson : remoteAccountList)
+        {
+            String name = BaseService.getAttrValue(accountJson, "name");
+            if (name.equals(accountName)) return accountJson;
+        }
+        return null;
     }
 
     private void syncAttributes(UserVO user, JSONObject remoteJson) throws Exception
@@ -141,11 +176,15 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
     //@Override
     protected UserVO findLocal(JSONObject jsonObject)
     {
-        String name = BaseService.getAttrValue(jsonObject, "username");
+        JSONObject accountJson = getAccount(jsonObject);
+        String accountName = BaseService.getAttrValue(accountJson, "name");
+        String userName = BaseService.getAttrValue(jsonObject, "username");
 
         for (UserVO user : localList)
         {
-            if (!user.getUsername().equals(name))  continue;
+            AccountVO account = getAccount(user);
+            if (!account.getAccountName().equals(accountName))  continue;
+            if (!user.getUsername().equals(userName))  continue;
             return user;
         }
 
@@ -162,6 +201,8 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
     //@Override
     protected UserVO findLocalByInitialName(JSONObject jsonObject)
     {
+        JSONObject accountJson = getAccount(jsonObject);
+        String accountName = BaseService.getAttrValue(accountJson, "name");
         String remoteName = BaseService.getAttrValue(jsonObject, "username");
         String remoteInitialName = BaseService.getAttrValue(jsonObject, "initialname");
 
@@ -169,6 +210,9 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
         {
             String localInitialName = user.getInitialName();
             if (localInitialName == null)   continue;
+
+            AccountVO account = getAccount(user);
+            if (!account.getAccountName().equals(accountName))  continue;
 
             if (!user.getUsername().equals(remoteName))  continue;
 
@@ -183,9 +227,14 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
     public JSONObject findRemote(Object object)
     {
         UserVO user = (UserVO)object;
+        AccountVO account = getAccount(user);
 
         for (JSONObject jsonObject : remoteList)
         {
+            JSONObject accountJson = getAccount(jsonObject);
+            String accountName = BaseService.getAttrValue(accountJson, "name");
+            if (!account.getAccountName().equals(accountName))  continue;
+
             String remoteName = BaseService.getAttrValue(jsonObject, "username");
             if (!user.getUsername().equals(remoteName))  continue;
             return jsonObject;
@@ -205,13 +254,17 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
     protected JSONObject findRemoteByInitialName(Object object)
     {
         UserVO user = (UserVO)object;
+        AccountVO account = getAccount(user);
         String localInitialName = user.getInitialName();
 
         for (JSONObject jsonObject : remoteList)
         {
-            String remoteName = BaseService.getAttrValue(jsonObject, "username");
             String remoteInitialName = BaseService.getAttrValue(jsonObject, "initialname");
             if (remoteInitialName == null)   continue;
+
+            JSONObject accountJson = getAccount(jsonObject);
+            String accountName = BaseService.getAttrValue(accountJson, "name");
+            if (!account.getAccountName().equals(accountName))  continue;
 
             if (localInitialName == null && remoteInitialName.equals(user.getUsername()))    return jsonObject;
             if (remoteInitialName.equals(localInitialName))    return jsonObject;
@@ -358,7 +411,9 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
             Date removed = user.getRemoved();
             if (removed == null)    continue;
 
-            if (user.getAccountId() != localParent.getId())  continue;
+            AccountVO account = getAccount(user);
+            //if (user.getAccountId() != localParent.getId())  continue;
+            if (account.getDomainId() != localParentDomain.getId())  continue;
 
             if (removedUser == null)
             {
@@ -508,9 +563,11 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
         {
             String userName = BaseService.getAttrValue(remoteJson, "username");
             UserVO found = null;
-            for (UserVO next : userDao.listByAccount(localParent.getId()))
+            for (UserVO next : userDao.findUsersByName(userName))
             {
-                if (next.getUsername().equals(userName))
+                AccountVO account = getAccount(next);
+                if (account == null)    continue;
+                if (account.getDomainId() == localParentDomain.getId())
                 {
                     found = next;
                     break;
@@ -543,9 +600,11 @@ public class UserFullSyncProcessor extends FullSyncProcessor {
         {
             String userName = user.getUsername();
             UserVO found = null;
-            for (UserVO next : userDao.listByAccount(localParent.getId()))
+            for (UserVO next : userDao.findUsersByName(userName))
             {
-                if (next.getUsername().equals(userName))
+                AccountVO account = getAccount(next);
+                if (account == null)    continue;
+                if (account.getDomainId() == localParentDomain.getId())
                 {
                     found = next;
                     break;

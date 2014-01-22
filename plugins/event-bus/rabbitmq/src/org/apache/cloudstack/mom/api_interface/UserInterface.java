@@ -24,7 +24,18 @@ public class UserInterface extends BaseInterface {
         }
 
         if (retJson.length() == 0)  return new JSONArray();
-        return retJson.getJSONArray("user");
+        if (domainId == null)   return retJson.getJSONArray("user");
+
+        JSONArray userArray = new JSONArray();
+        JSONArray retArray = retJson.getJSONArray("user");
+        for(int index = 0; index < retArray.length(); index++)
+        {
+            if (retArray.getJSONObject(index).get("domain").equals("ROOT") && retArray.getJSONObject(index).get("account").equals("system")) continue;
+            if (!retArray.getJSONObject(index).get("domainid").equals(domainId)) continue;
+            userArray.put(retArray.getJSONObject(index));
+        }
+
+        return userArray;
     }
 
     public JSONObject createUser(String userName, String password, String email, String firstName, String lastName, String accountName, String domainId, String timezone) throws Exception
