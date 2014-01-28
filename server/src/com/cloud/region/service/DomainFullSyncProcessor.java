@@ -5,7 +5,6 @@ import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
-import com.cloud.user.DomainManager;
 import com.cloud.utils.component.ComponentContext;
 import org.apache.log4j.Logger;
 
@@ -18,7 +17,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     private static final Logger s_logger = Logger.getLogger(DomainFullSyncProcessor.class);
 
     protected DomainDao domainDao;
-    private DomainManager domainManager;
 
     protected DomainVO localParent;
     protected List<DomainVO> localList;
@@ -35,7 +33,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         this.password = password;
 
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
-        this.domainManager = ComponentContext.getComponent(DomainManager.class);
 
         localParent = domainDao.findById(parentDomainId);
         //localList = domainDao.listAll();

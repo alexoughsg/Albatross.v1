@@ -39,9 +39,6 @@ public class MultiRegionSubscriber  implements EventSubscriber {
 
     protected List<RegionVO> regions;
 
-    //protected static FullScanner fullScanner = new FullScanner();
-    //protected static AutoGenerator autoGenerator = new AutoGenerator();
-
     public MultiRegionSubscriber(int id)
     {
         this.id = id;
@@ -109,15 +106,4 @@ public class MultiRegionSubscriber  implements EventSubscriber {
             s_logger.info("Key: " + e.getKey() + ", Value: " + e.getValue());
         }
     }
-
-    /*protected void fullScan()
-    {
-        regions = findRemoteRegions();
-        fullScanner.fullScan(regions);
-    }
-
-    protected void autoGenerate()
-    {
-        autoGenerator.generate();
-    }*/
 }

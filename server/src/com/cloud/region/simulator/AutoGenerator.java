@@ -2,12 +2,6 @@ package com.cloud.region.simulator;
 
 public class AutoGenerator {
 
-    /*private static final ConfigKey<Integer> FullScanInterval = new ConfigKey<Integer>("Advanced", Integer.class, "full.scan.interval.region.commands", "1",
-            "The full scan with remote regions will occur if the last time is more than minutes of the given number. Default value is 1 minute.", true);
-
-    private static final ConfigKey<Boolean> RunAutoGeneration = new ConfigKey<Boolean>("Advanced", Boolean.class, "auto.generation.region.commands", "false",
-            "If this is true, automatic domain/account/user create/delete/update are processed. Default value is false.", true);*/
-
     private DomainLocalGenerator domainGenerator = new DomainLocalGenerator();
     private AccountLocalGenerator accountGenerator = new AccountLocalGenerator();
     private UserLocalGenerator userGenerator = new UserLocalGenerator();
@@ -16,32 +10,12 @@ public class AutoGenerator {
     private AccountLocalGeneratorEvent accountGeneratorEvent = new AccountLocalGeneratorEvent();
     private UserLocalGeneratorEvent userGeneratorEvent = new UserLocalGeneratorEvent();
 
-    //private Date lastGenerated;
-
     public AutoGenerator()
     {
-        //this.lastGenerated = null;
     }
-
-    /*private boolean timeToGeneration()
-    {
-        if (lastGenerated == null)   return true;
-
-        long time1 = lastGenerated.getTime();
-        long time2 = (new Date()).getTime();
-        long diff = time2 - time1;
-        long secondInMillis = 1000;
-        long elapsedSeconds = diff / secondInMillis;
-        return elapsedSeconds > FullScanInterval.value() * 30;
-    }*/
 
     public void generate()
     {
-        //if (!RunAutoGeneration.value()) return;
-
-        //if (!timeToGeneration())    return;
-
-        //int randNumber = domainGenerator.generateRandNumber(6);
         int randNumber = domainGenerator.generateRandNumber(18);
         switch (randNumber)
         {
@@ -71,7 +45,7 @@ public class AutoGenerator {
                 userGenerator.enable(null);
                 break;
             case 8:
-                domainGenerator.remove(null);
+                //domainGenerator.remove(null);
                 accountGenerator.remove(null);
                 userGenerator.remove(null);
                 break;
@@ -101,7 +75,7 @@ public class AutoGenerator {
                 userGeneratorEvent.enable(null);
                 break;
             case 17:
-                domainGeneratorEvent.remove(null);
+                //domainGeneratorEvent.remove(null);
                 accountGeneratorEvent.remove(null);
                 userGeneratorEvent.remove(null);
                 break;

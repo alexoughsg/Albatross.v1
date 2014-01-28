@@ -503,15 +503,6 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
         }
     }
 
-    /*private AccountVO findFromList(List<AccountVO> list, String name)
-    {
-        for(AccountVO account : list)
-        {
-            if (account.getAccountName().equals(name))  return account;
-        }
-        return null;
-    }*/
-
     @Override
     public void createRemoteResourcesInLocal()
     {

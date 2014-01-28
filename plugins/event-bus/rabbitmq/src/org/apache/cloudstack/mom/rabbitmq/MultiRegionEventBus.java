@@ -43,15 +43,6 @@ public class MultiRegionEventBus extends RabbitMQEventBus{
             throw new ConfigurationException("Invalid topic and/or subscriber");
         }
 
-        /*try {
-            EventTopic topic = new EventTopic("*", "*", "*", "*", "*");
-            subscribe(topic, new RegionSubscriber(4));
-        }
-        catch (Exception ex)
-        {
-            throw new ConfigurationException("Invalid topic and/or subscriber");
-        }*/
-
         return true;
     }
 }

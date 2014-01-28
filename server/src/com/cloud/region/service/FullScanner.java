@@ -24,11 +24,7 @@ public class FullScanner {
     @Inject
     protected RegionDao regionDao;
 
-    //protected Date lastFullScan;
     private List<RegionVO> regions;
-
-    //private static final ConfigKey<Integer> FullScanInterval = new ConfigKey<Integer>("Advanced", Integer.class, "full.scan.interval.region.commands", "1",
-    //        "The full scan with remote regions will occur if the last time is more than minutes of the given number. Default value is 1 minute.", true);
 
     public FullScanner()
     {
@@ -36,21 +32,8 @@ public class FullScanner {
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.regionDao = ComponentContext.getComponent(RegionDao.class);
 
-        //this.lastFullScan = null;
         this.regions = null;
     }
-
-    /*private boolean timeToFullScan()
-    {
-        if (lastFullScan == null)   return true;
-
-        long time1 = lastFullScan.getTime();
-        long time2 = (new Date()).getTime();
-        long diff = time2 - time1;
-        long secondInMillis = 1000;
-        long elapsedSeconds = diff / secondInMillis;
-        return elapsedSeconds > FullScanInterval.value() * 60;
-    }*/
 
     protected List<RegionVO> findRemoteRegions()
     {
@@ -74,9 +57,6 @@ public class FullScanner {
 
     public void fullScan()
     {
-        //if (!timeToFullScan())  return;
-
-        //this.lastFullScan = new Date();
         this.regions = findRemoteRegions();
 
         fullDomainScan();
@@ -142,7 +122,7 @@ public class FullScanner {
         {
             DomainFullSyncProcessor processor = syncProcessors.get(idx);
             processor.createRemoteResourcesInLocal();
-            processor.removeLocalResources();
+            //processor.removeLocalResources();
         }
     }
 
@@ -174,7 +154,7 @@ public class FullScanner {
         {
             AccountFullSyncProcessor processor = syncProcessors.get(idx);
             processor.createRemoteResourcesInLocal();
-            processor.removeLocalResources();
+            //processor.removeLocalResources();
         }
     }
 
