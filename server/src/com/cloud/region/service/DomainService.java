@@ -1,10 +1,10 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
-import org.apache.cloudstack.mom.api_interface.BaseInterface;
-import org.apache.cloudstack.mom.api_interface.DomainInterface;
+import com.cloud.region.api_interface.BaseInterface;
+import com.cloud.region.api_interface.DomainInterface;
 import org.apache.log4j.Logger;
 
 public class DomainService extends BaseService {
@@ -73,7 +73,7 @@ public class DomainService extends BaseService {
             String[] attrNames = {"path"};
             String[] attrValues = {domainPath};
             JSONObject domainJson = find(attrNames, attrValues);
-            s_logger.info("Successfully found domain by path[" + domainPath + "]");
+            s_logger.debug("Successfully found domain by path[" + domainPath + "]");
             return domainJson;
         }
         catch(Exception ex)
@@ -93,7 +93,7 @@ public class DomainService extends BaseService {
         {
             this.apiInterface.login(this.userName, this.password);
             JSONArray domainArray = this.apiInterface.listDomains(true);
-            s_logger.info("Successfully found domain list");
+            s_logger.debug("Successfully found domain list");
             return domainArray;
         }
         catch(Exception ex)
@@ -113,7 +113,7 @@ public class DomainService extends BaseService {
         {
             this.apiInterface.login(this.userName, this.password);
             JSONObject domainJson = this.apiInterface.findDomain(level, name, path);
-            s_logger.info("Successfully found a domain[" + name + "] in level[" + level + "]");
+            s_logger.debug("Successfully found a domain[" + name + "] in level[" + level + "]");
             return domainJson;
         }
         catch(Exception ex)
@@ -133,7 +133,7 @@ public class DomainService extends BaseService {
         {
             this.apiInterface.login(this.userName, this.password);
             JSONArray domainArray = this.apiInterface.listChildDomains(parentDomainId, isRecursive);
-            s_logger.info("Successfully found domain list");
+            s_logger.debug("Successfully found domain list");
             return domainArray;
         }
         catch(Exception ex)
@@ -152,7 +152,7 @@ public class DomainService extends BaseService {
         return (resJson != null);
     }
 
-    protected JSONObject create(String domainName, String domainPath, String networkDomain)
+    public JSONObject create(String domainName, String domainPath, String networkDomain)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -165,7 +165,7 @@ public class DomainService extends BaseService {
             JSONObject domainJson = find(attrNames, attrValues);
             if (domainJson != null)
             {
-                s_logger.info("domain[" + domainName + "] already exists in host[" + this.hostName + "]");
+                s_logger.debug("domain[" + domainName + "] already exists in host[" + this.hostName + "]");
                 return domainJson;
             }
 
@@ -179,14 +179,14 @@ public class DomainService extends BaseService {
                 JSONObject pDomainJson = find(pAttrNames, pAttrValues);
                 if (pDomainJson == null)
                 {
-                    s_logger.info("cannot find parent domain[" + parentDomainPath + "] in host[" + this.hostName + "]");
+                    s_logger.error("cannot find parent domain[" + parentDomainPath + "] in host[" + this.hostName + "]");
                     return null;
                 }
                 parentDomainId = getAttrValue(pDomainJson, "id");
             }
 
             domainJson = this.apiInterface.createDomain(domainName, parentDomainId, null, networkDomain);
-            s_logger.info("Successfully created domain[" + domainName + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully created domain[" + domainName + "] in host[" + this.hostName + "]");
             return domainJson;
         }
         catch(Exception ex)
@@ -204,7 +204,7 @@ public class DomainService extends BaseService {
         return delete(domain.getName(), domain.getPath());
     }
 
-    protected boolean delete(String domainName, String domainPath)
+    public boolean delete(String domainName, String domainPath)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -217,14 +217,14 @@ public class DomainService extends BaseService {
             JSONObject domainJson = find(attrNames, attrValues);
             if (domainJson == null)
             {
-                s_logger.info("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             String id = getAttrValue(domainJson, "id");
             JSONObject retJson = this.apiInterface.deleteDomain(id, false);
             queryAsyncJob(retJson);
-            s_logger.info("Successfully deleted domain[" + domainName + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully deleted domain[" + domainName + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)
@@ -244,7 +244,7 @@ public class DomainService extends BaseService {
         return update(oldDomainName, domain.getName(), domainPath, domain.getNetworkDomain());
     }
 
-    protected boolean update(String domainName, String newName, String domainPath, String networkDomain)
+    public boolean update(String domainName, String newName, String domainPath, String networkDomain)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -256,19 +256,19 @@ public class DomainService extends BaseService {
             JSONObject domainJson = find(attrNames, attrValues);
             if (domainJson == null)
             {
-                s_logger.info("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             if(isEqual(domainJson, newName, networkDomain))
             {
-                s_logger.info("domain[" + newName + "] has same attrs in host[" + this.hostName + "]");
+                s_logger.debug("domain[" + newName + "] has same attrs in host[" + this.hostName + "]");
                 return false;
             }
 
             String id = getAttrValue(domainJson, "id");
             this.apiInterface.updateDomain(id, newName, networkDomain);
-            s_logger.info("Successfully updated domain[" + domainName + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully updated domain[" + domainName + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)

@@ -1,7 +1,9 @@
-package org.apache.cloudstack.mom.api_interface;
+package com.cloud.region.api_interface;
 
-import com.amazonaws.util.json.JSONObject;
 import com.amazonaws.util.json.JSONArray;
+import com.amazonaws.util.json.JSONObject;
+import com.cloud.region.service.BaseService;
+
 import java.net.URLEncoder;
 
 public class UserInterface extends BaseInterface {
@@ -18,7 +20,7 @@ public class UserInterface extends BaseInterface {
         if (domainId != null)   paramStr += "&domainid=" + domainId;
         if (accountName != null)   paramStr += "&account=" + accountName;
         JSONObject retJson = sendApacheGet(paramStr);
-        if (!BaseInterface.hasAttribute(retJson, "user"))
+        if (!BaseService.hasAttribute(retJson, "user"))
         {
             return new JSONArray();
         }

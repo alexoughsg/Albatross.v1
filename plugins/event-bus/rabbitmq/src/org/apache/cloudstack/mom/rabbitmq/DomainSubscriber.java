@@ -2,7 +2,7 @@ package org.apache.cloudstack.mom.rabbitmq;
 
 import com.cloud.domain.Domain;
 import org.apache.cloudstack.framework.events.Event;
-import org.apache.cloudstack.mom.service.DomainService;
+import com.cloud.region.service.DomainService;
 import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
 

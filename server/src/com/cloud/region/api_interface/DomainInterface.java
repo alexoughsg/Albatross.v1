@@ -1,8 +1,8 @@
-package org.apache.cloudstack.mom.api_interface;
+package com.cloud.region.api_interface;
 
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
-import org.apache.cloudstack.mom.service.BaseService;
+import com.cloud.region.service.BaseService;
 
 import java.net.URLEncoder;
 
@@ -13,6 +13,16 @@ public class DomainInterface extends BaseInterface {
         super(url);
     }
 
+    private void modifyPath(JSONObject domainJson)
+    {
+        String domainPath = BaseService.getAttrValue(domainJson, "path");
+        if (domainPath != null)
+        {
+            domainPath = BaseService.modifyDomainPath(domainPath);
+            BaseService.setAttrValue(domainJson, "path", domainPath);
+        }
+    }
+
     public JSONArray listDomains(boolean listAll) throws Exception
     {
         // command=listDomains&response=json&sessionkey=null&_=1362457544896
@@ -21,11 +31,18 @@ public class DomainInterface extends BaseInterface {
         String paramStr = "command=listDomains&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         if (listAll)    paramStr += "&listall" + listAll;
         JSONObject retJson = sendApacheGet(paramStr);
-        if (!BaseInterface.hasAttribute(retJson, "domain"))
+        if (!BaseService.hasAttribute(retJson, "domain"))
         {
             return new JSONArray();
         }
-        return retJson.getJSONArray("domain");
+
+        JSONArray retArray = retJson.getJSONArray("domain");
+        for(int idx = 0; idx < retArray.length(); idx++)
+        {
+            modifyPath(retArray.getJSONObject(idx));
+        }
+
+        return retArray;
     }
 
     public JSONObject findDomain(int level, String name, String path) throws Exception
@@ -34,18 +51,33 @@ public class DomainInterface extends BaseInterface {
         // { "listdomainsresponse" : { "count":2 ,"domain" : [  {"id":"45152a26-a2ce-11e2-8da9-28fb734f3313","name":"ROOT","level":0,"haschild":true,"path":"ROOT"}, {"id":"3d12e7d5-a528-4626-a423-d1e17024ff91","name":"Ough","level":1,"parentdomainid":"45152a26-a2ce-11e2-8da9-28fb734f3313","parentdomainname":"ROOT","haschild":false,"path":"ROOT/Ough"} ] } }
 
         String paramStr = "command=listDomains&level=" + level + "&name=" + name + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
-        JSONArray domains = (JSONArray)sendApacheGet(paramStr).get("domain");
+        JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseService.hasAttribute(retJson, "domain"))
+        {
+            return null;
+        }
+
+        JSONArray domains = retJson.getJSONArray("domain");
         if (domains == null)    return null;
         if (domains.length() == 0)  return null;
         if (path == null) return domains.getJSONObject(0);
 
+        JSONObject found = null;
         for(int idx = 0; idx < domains.length(); idx++)
         {
             JSONObject jsonObject = domains.getJSONObject(idx);
             String pathInJson = BaseService.getAttrValue(jsonObject, "path");
-            if (BaseService.compareDomainPath(path, pathInJson))    return jsonObject;
+            if (BaseService.compareDomainPath(path, pathInJson))
+            {
+                found = jsonObject;
+                break;
+            }
         }
-        return null;
+
+        if (found == null)  return null;
+
+        modifyPath(found);
+        return found;
     }
 
     public JSONArray listChildDomains(String parentDomainId, boolean isRecursive) throws Exception
@@ -61,11 +93,18 @@ public class DomainInterface extends BaseInterface {
             paramStr += "&isrecursive=false";
         }
         JSONObject retJson = (JSONObject)sendApacheGet(paramStr);
-        if (!BaseInterface.hasAttribute(retJson, "domain"))
+        if (!BaseService.hasAttribute(retJson, "domain"))
         {
             return new JSONArray();
         }
-        return retJson.getJSONArray("domain");
+
+        JSONArray retArray = retJson.getJSONArray("domain");
+        for(int idx = 0; idx < retArray.length(); idx++)
+        {
+            modifyPath(retArray.getJSONObject(idx));
+        }
+
+        return retArray;
     }
 
     public JSONObject createDomain(String name, String parentDomainId, String domainId, String networkDomain) throws Exception

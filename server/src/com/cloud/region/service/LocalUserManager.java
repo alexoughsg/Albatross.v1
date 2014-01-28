@@ -1,4 +1,4 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public class LocalUserManager {
 
-    private static final String TEMP_PASSWORD = "temppassword";
+    public static final String TEMP_PASSWORD = "temppassword";
 
     private static final Logger s_logger = Logger.getLogger(LocalUserManager.class);
 

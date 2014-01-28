@@ -1,4 +1,4 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
@@ -27,7 +27,7 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     private LocalDomainManager localDomainManager;
     private RemoteDomainEventProcessor eventProcessor;
 
-    public DomainFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId)
+    public DomainFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId) throws Exception
     {
         this.hostName = hostName;
         this.endPoint = endPoint;
@@ -49,6 +49,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
 
         DomainService domainService = new DomainService(hostName, endPoint, userName, password);
         remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
+        if (remoteParent == null)
+        {
+            throw new Exception("The parent domain[" + localParent.getPath() + "] cannot be found in the remote region.");
+        }
         String remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
         JSONArray remoteArray = domainService.listChildren(remoteParentDomainId, false);
         remoteList = new ArrayList<JSONObject>();

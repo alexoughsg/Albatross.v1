@@ -34,7 +34,7 @@ ALTER TABLE user ADD initial_name varchar(255) DEFAULT NULL;
 
 ALTER TABLE region ADD username varchar(255) DEFAULT NULL;
 ALTER TABLE region ADD password varchar(255) DEFAULT NULL;
-ALTER TABLE region ADD active tinyint(1) unsigned NOT NULL DEFAULT '1'
+ALTER TABLE region ADD active tinyint(1) unsigned NOT NULL DEFAULT '1';
 
 UPDATE domain SET created = UTC_TIMESTAMP() where created IS NULL;
 UPDATE domain SET modified = UTC_TIMESTAMP() where modified IS NULL;
@@ -425,3 +425,6 @@ CREATE VIEW `cloud`.`account_view` AS
 
 
 UPDATE `cloud`.`configuration` SET `description` = 'If set to true, StartCommand, StopCommand, CopyCommand, MigrateCommand will be synchronized on the agent side. If set to false, these commands become asynchronous. Default value is true.' WHERE `name` = 'execute.in.sequence.hypervisor.commands';
+
+INSERT IGNORE INTO `cloud`.`configuration` VALUES ('Advanced', 'DEFAULT', 'management-server', 'region.full.scan.interval', '3600000', 'The interval (in milliseconds) when full scan is processed.', NULL, NULL, NULL, false);
+INSERT IGNORE INTO `cloud`.`configuration` VALUES ('Advanced', 'DEFAULT', 'management-server', 'region.auto.generation.interval', '0', 'The interval (in milliseconds) when resource auto generation is processed.', NULL, NULL, NULL, false);

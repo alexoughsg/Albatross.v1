@@ -1,12 +1,12 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
 import com.cloud.user.Account;
 import com.cloud.user.User;
-import org.apache.cloudstack.mom.api_interface.AccountInterface;
-import org.apache.cloudstack.mom.api_interface.BaseInterface;
+import com.cloud.region.api_interface.AccountInterface;
+import com.cloud.region.api_interface.BaseInterface;
 import org.apache.log4j.Logger;
 
 public class AccountService extends BaseService {
@@ -70,7 +70,7 @@ public class AccountService extends BaseService {
         {
             this.apiInterface.login(this.userName, this.password);
             JSONArray accountArray = this.apiInterface.listAccounts(domainId);
-            s_logger.info("Successfully found account list");
+            s_logger.debug("Successfully found account list");
             return accountArray;
         }
         catch(Exception ex)
@@ -90,7 +90,7 @@ public class AccountService extends BaseService {
         {
             this.apiInterface.login(this.userName, this.password);
             JSONObject accountJson = this.apiInterface.findAccount(domainId, accountName);
-            s_logger.info("Successfully found account");
+            s_logger.debug("Successfully found account");
             return accountJson;
         }
         catch(Exception ex)
@@ -114,7 +114,7 @@ public class AccountService extends BaseService {
         return (resJson != null);
     }
 
-    protected JSONObject create(String accountName, String domainPath, String userName, String password, String email, String firstName, String lastName, String accountType, String accountDetails, String networkDomain, String timezone)
+    public JSONObject create(String accountName, String domainPath, String userName, String password, String email, String firstName, String lastName, String accountType, String accountDetails, String networkDomain, String timezone)
     {
         this.apiInterface = new AccountInterface(this.url);
         try
@@ -127,7 +127,7 @@ public class AccountService extends BaseService {
             JSONObject accountJson = find(attrNames, attrValues);
             if (accountJson != null)
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] already exists in host[" + this.hostName + "]");
+                s_logger.debug("account[" + accountName + "] in domain[" + domainPath + "] already exists in host[" + this.hostName + "]");
                 return accountJson;
             }
 
@@ -140,7 +140,7 @@ public class AccountService extends BaseService {
             }
 
             accountJson = this.apiInterface.createAccount(userName, password, email, firstName, lastName, accountType, domainId, accountName, accountDetails, networkDomain, timezone);
-            s_logger.info("Successfully created account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully created account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
             return accountJson;
         }
         catch(Exception ex)
@@ -158,7 +158,7 @@ public class AccountService extends BaseService {
         return delete(account.getAccountName(), domain.getPath());
     }
 
-    protected boolean delete(String accountName, String domainPath)
+    public boolean delete(String accountName, String domainPath)
     {
         this.apiInterface = new AccountInterface(this.url);
         try
@@ -171,14 +171,14 @@ public class AccountService extends BaseService {
             JSONObject accountJson = find(attrNames, attrValues);
             if (accountJson == null)
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             String id = getAttrValue(accountJson, "id");
             JSONObject retJson = this.apiInterface.deleteAccount(id);
             queryAsyncJob(retJson);
-            s_logger.info("Successfully deleted account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully deleted account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)
@@ -196,7 +196,7 @@ public class AccountService extends BaseService {
         return enable(account.getAccountName(), domain.getPath());
     }
 
-    protected boolean enable(String accountName, String domainPath)
+    public boolean enable(String accountName, String domainPath)
     {
         this.apiInterface = new AccountInterface(this.url);
         try
@@ -208,20 +208,20 @@ public class AccountService extends BaseService {
             JSONObject accountJson = find(attrNames, attrValues);
             if (accountJson == null)
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             String state = getAttrValue(accountJson, "state");
             if (state.equals(Account.ACCOUNT_STATE_ENABLED))
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] is already enabled in host[" + this.hostName + "]");
+                s_logger.debug("account[" + accountName + "] in domain[" + domainPath + "] is already enabled in host[" + this.hostName + "]");
                 return false;
             }
 
             String id = getAttrValue(accountJson, "id");
             this.apiInterface.enableAccount(id);
-            s_logger.info("Successfully enabled account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully enabled account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)
@@ -239,7 +239,7 @@ public class AccountService extends BaseService {
         return disable(account.getAccountName(), domain.getPath());
     }
 
-    protected boolean disable(String accountName, String domainPath)
+    public boolean disable(String accountName, String domainPath)
     {
         this.apiInterface = new AccountInterface(this.url);
         try
@@ -251,21 +251,21 @@ public class AccountService extends BaseService {
             JSONObject accountJson = find(attrNames, attrValues);
             if (accountJson == null)
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             String state = getAttrValue(accountJson, "state");
             if (state.equals(Account.ACCOUNT_STATE_DISABLED))
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] is already disabled in host[" + this.hostName + "]");
+                s_logger.debug("account[" + accountName + "] in domain[" + domainPath + "] is already disabled in host[" + this.hostName + "]");
                 return false;
             }
 
             String id = getAttrValue(accountJson, "id");
             JSONObject retJson = this.apiInterface.disableAccount(id);
             queryAsyncJob(retJson);
-            s_logger.info("Successfully disabled account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully disabled account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)
@@ -283,7 +283,7 @@ public class AccountService extends BaseService {
         return lock(account.getAccountName(), domain.getPath());
     }
 
-    protected boolean lock(String accountName, String domainPath)
+    public boolean lock(String accountName, String domainPath)
     {
         this.apiInterface = new AccountInterface(this.url);
         try
@@ -295,20 +295,20 @@ public class AccountService extends BaseService {
             JSONObject accountJson = find(attrNames, attrValues);
             if (accountJson == null)
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             String state = getAttrValue(accountJson, "state");
             if (state.equals(Account.ACCOUNT_STATE_LOCKED))
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] is already locked in host[" + this.hostName + "]");
+                s_logger.debug("account[" + accountName + "] in domain[" + domainPath + "] is already locked in host[" + this.hostName + "]");
                 return false;
             }
 
             String id = getAttrValue(accountJson, "id");
             this.apiInterface.lockAccount(id);
-            s_logger.info("Successfully locked account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully locked account[" + accountName + "] in domain[" + domainPath + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)
@@ -326,7 +326,7 @@ public class AccountService extends BaseService {
         return update(oldAccountName, domain.getPath(), account.getAccountName(), null, account.getNetworkDomain());
     }
 
-    protected boolean update(String accountName, String domainPath, String newName, String details, String networkDomain)
+    public boolean update(String accountName, String domainPath, String newName, String details, String networkDomain)
     {
         this.apiInterface = new AccountInterface(this.url);
         try
@@ -338,13 +338,13 @@ public class AccountService extends BaseService {
             JSONObject accountJson = find(attrNames, attrValues);
             if (accountJson == null)
             {
-                s_logger.info("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
+                s_logger.error("account[" + accountName + "] in domain[" + domainPath + "] does not exists in host[" + this.hostName + "]");
                 return false;
             }
 
             if(isEqual(accountJson, newName, networkDomain))
             {
-                s_logger.info("account[" + newName + "] has same attrs in host[" + this.hostName + "]");
+                s_logger.debug("account[" + newName + "] has same attrs in host[" + this.hostName + "]");
                 return false;
             }
 
@@ -354,12 +354,12 @@ public class AccountService extends BaseService {
             String domainId = findDomainId(domainPath);
             if (domainId == null)
             {
-                s_logger.info("cannot find domain[" + domainPath + "] in host[" + this.hostName + "]");
+                s_logger.error("cannot find domain[" + domainPath + "] in host[" + this.hostName + "]");
                 return false;
             }
 
             this.apiInterface.updateAccount(id, accountName, newName, details, domainId, networkDomain);
-            s_logger.info("Successfully updated user[" + userName + "] in account[" + accountName + "], domain[" + domainPath + "] in host[" + this.hostName + "]");
+            s_logger.debug("Successfully updated user[" + userName + "] in account[" + accountName + "], domain[" + domainPath + "] in host[" + this.hostName + "]");
             return true;
         }
         catch(Exception ex)

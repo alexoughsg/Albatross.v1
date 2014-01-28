@@ -1,8 +1,8 @@
-package org.apache.cloudstack.mom.simulator;
+package com.cloud.region.simulator;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
-import org.apache.cloudstack.mom.service.LocalDomainManager;
+import com.cloud.region.service.LocalDomainManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
@@ -57,6 +57,12 @@ public class DomainLocalGenerator extends LocalGenerator {
         // select a random domain
         if(domain == null)  domain = randDomainSelect(false);
 
+        if (domain.getName().equals("ROOT") && domain.getPath().equals("/"))
+        {
+            s_logger.info("This is a root domain, so skip to update");
+            return domain;
+        }
+
         // create new attribute values
         String newDomainName = "D" + generateRandString();
         String newNetworkDomain = "ND" + generateRandString();
@@ -70,7 +76,7 @@ public class DomainLocalGenerator extends LocalGenerator {
         }
         catch (Exception ex)
         {
-            s_logger.error("Failed to set json attributes", ex);
+            s_logger.error("Failed to update domain", ex);
             return null;
         }
     }
@@ -82,8 +88,21 @@ public class DomainLocalGenerator extends LocalGenerator {
         // select a random domain
         if(domain == null)  domain = randDomainSelect(false);
 
-        localDomainManager.remove(domain, removed);
-        s_logger.info("Successfully removed domain[" + domain.getName() + "]");
+        if (domain.getName().equals("ROOT") && domain.getPath().equals("/"))
+        {
+            s_logger.info("This is a root domain, so skip to remove");
+            return domain;
+        }
+
+        try
+        {
+            localDomainManager.remove(domain, removed);
+            s_logger.info("Successfully removed domain[" + domain.getName() + "]");
+        }
+        catch(Exception ex)
+        {
+            s_logger.info("Failed to remove domain[" + domain.getName() + "]");
+        }
 
         return domain;
     }

@@ -1,7 +1,8 @@
-package org.apache.cloudstack.mom.api_interface;
+package com.cloud.region.api_interface;
 
 import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
+import com.cloud.region.service.BaseService;
 
 import java.net.URLEncoder;
 
@@ -19,7 +20,7 @@ public class AccountInterface extends BaseInterface {
         String paramStr = "command=listAccounts&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         if (domainId != null)   paramStr += "&domainId=" + domainId;
         JSONObject retJson = sendApacheGet(paramStr);
-        if (!BaseInterface.hasAttribute(retJson, "account"))
+        if (!BaseService.hasAttribute(retJson, "account"))
         {
             return new JSONArray();
         }
@@ -42,7 +43,7 @@ public class AccountInterface extends BaseInterface {
     {
         String paramStr = "command=listAccounts&domainid=" + domainId + "&name=" + accountName + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
         JSONObject retJson = sendApacheGet(paramStr);
-        if (!BaseInterface.hasAttribute(retJson, "account"))
+        if (!BaseService.hasAttribute(retJson, "account"))
         {
             return null;
         }

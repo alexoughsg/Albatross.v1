@@ -1,4 +1,4 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
@@ -6,32 +6,41 @@ import com.cloud.domain.dao.DomainDao;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.utils.component.ComponentContext;
 import org.apache.cloudstack.region.RegionVO;
+import org.apache.cloudstack.region.dao.RegionDao;
+import org.apache.log4j.Logger;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class FullScanner {
+
+    private static final Logger s_logger = Logger.getLogger(FullScanner.class);
 
     @Inject
     protected DomainDao domainDao;
     @Inject
     protected AccountDao accountDao;
+    @Inject
+    protected RegionDao regionDao;
 
-    protected Date lastFullScan;
+    //protected Date lastFullScan;
     private List<RegionVO> regions;
+
+    //private static final ConfigKey<Integer> FullScanInterval = new ConfigKey<Integer>("Advanced", Integer.class, "full.scan.interval.region.commands", "1",
+    //        "The full scan with remote regions will occur if the last time is more than minutes of the given number. Default value is 1 minute.", true);
 
     public FullScanner()
     {
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
+        this.regionDao = ComponentContext.getComponent(RegionDao.class);
 
-        this.lastFullScan = null;
+        //this.lastFullScan = null;
         this.regions = null;
     }
 
-    private boolean timeToFullScan()
+    /*private boolean timeToFullScan()
     {
         if (lastFullScan == null)   return true;
 
@@ -40,15 +49,36 @@ public class FullScanner {
         long diff = time2 - time1;
         long secondInMillis = 1000;
         long elapsedSeconds = diff / secondInMillis;
-        return elapsedSeconds > 60 * 5;
+        return elapsedSeconds > FullScanInterval.value() * 60;
+    }*/
+
+    protected List<RegionVO> findRemoteRegions()
+    {
+        List<RegionVO> regions = regionDao.listAll();
+        for (int idx = regions.size()-1; idx >= 0; idx--)
+        {
+            RegionVO region = regions.get(idx);
+            if (region.getName().equals("Local"))
+            {
+                regions.remove(region);
+                continue;
+            }
+            if (!region.isActive())
+            {
+                regions.remove(region);
+                continue;
+            }
+        }
+        return regions;
     }
 
-    public void fullScan(List<RegionVO> regions)
+    public void fullScan()
     {
-        if (!timeToFullScan())  return;
+        //if (!timeToFullScan())  return;
 
-        this.lastFullScan = new Date();
-        this.regions = regions;
+        //this.lastFullScan = new Date();
+        this.regions = findRemoteRegions();
+
         fullDomainScan();
     }
 
@@ -66,9 +96,17 @@ public class FullScanner {
         {
             if (domain.getState().equals(Domain.State.Inactive))    continue;
 
-            fullDomainScan(domain);
-            fullAccountScan(domain);
-            fullUserScan(domain);
+            try
+            {
+                fullDomainScan(domain);
+                fullAccountScan(domain);
+                fullUserScan(domain);
+            }
+            catch(Exception ex)
+            {
+                s_logger.error("Failed to full sync : " + ex.toString());
+                continue;
+            }
 
             // recursive call
             List<DomainVO> childrenList = domainDao.findImmediateChildrenForParent(domain.getId());
@@ -76,7 +114,7 @@ public class FullScanner {
         }
     }
 
-    protected void fullDomainScan(DomainVO domain)
+    protected void fullDomainScan(DomainVO domain) throws Exception
     {
         List<DomainFullSyncProcessor> syncProcessors = new ArrayList<DomainFullSyncProcessor>();
 
@@ -108,7 +146,7 @@ public class FullScanner {
         }
     }
 
-    protected void fullAccountScan(DomainVO domain)
+    protected void fullAccountScan(DomainVO domain) throws Exception
     {
         List<AccountFullSyncProcessor> syncProcessors = new ArrayList<AccountFullSyncProcessor>();
 
@@ -140,7 +178,7 @@ public class FullScanner {
         }
     }
 
-    protected void fullUserScan(DomainVO domain)
+    protected void fullUserScan(DomainVO domain) throws Exception
     {
         List<UserFullSyncProcessor> syncProcessors = new ArrayList<UserFullSyncProcessor>();
 
@@ -168,7 +206,7 @@ public class FullScanner {
         {
             UserFullSyncProcessor processor = syncProcessors.get(idx);
             processor.createRemoteResourcesInLocal();
-            processor.removeLocalResources();
+            //processor.removeLocalResources();
         }
     }
 }

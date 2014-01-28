@@ -1,16 +1,17 @@
-package org.apache.cloudstack.mom.simulator;
+package com.cloud.region.simulator;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
 import com.cloud.user.Account;
 import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
-import org.apache.cloudstack.mom.service.LocalUserManager;
+import com.cloud.region.service.LocalUserManager;
 import org.apache.log4j.Logger;
 
 import java.util.Date;
 
 public class UserLocalGenerator extends LocalGenerator {
+
     private static final Logger s_logger = Logger.getLogger(UserLocalGenerator.class);
 
     private LocalUserManager localUserManager;
@@ -27,6 +28,17 @@ public class UserLocalGenerator extends LocalGenerator {
 
         // select a random user
         AccountVO account = randAccountSelect(false);
+        if (!isUsable(account))
+        {
+            return null;
+        }
+
+        if (!account.getState().equals(Account.State.enabled))
+        {
+            s_logger.info("Account[" + account.getAccountName() + "] is not enabled, skip to create a user.");
+            return null;
+        }
+
         DomainVO domain = domainDao.findById(account.getDomainId());
 
         // create a random string for a new user
@@ -47,6 +59,7 @@ public class UserLocalGenerator extends LocalGenerator {
             userJson.put("lastname", lastName);
             userJson.put("email", email);
             userJson.put("timezone", timezone);
+            userJson.put("state", "enabled");
 
             UserVO user = (UserVO)localUserManager.create(userJson, created);
             s_logger.info("Successfully created user[" + user.getUsername() + "]");
@@ -66,9 +79,17 @@ public class UserLocalGenerator extends LocalGenerator {
 
         // select a random user
         if(user == null)    user = randUserSelect();
+
+        AccountVO account = accountDao.findById(user.getAccountId());
+        if (!isUsable(account))
+        {
+            return null;
+        }
+
         if (!user.getState().equals(Account.State.enabled))
         {
-            localUserManager.enable(user, modified);
+            s_logger.info("User[" + user.getUsername() + "] is not enabled, skip to update a user.");
+            return null;
         }
 
         // create new attribute values
@@ -91,10 +112,11 @@ public class UserLocalGenerator extends LocalGenerator {
             userJson.put("secretkey", scretkey);
             userJson.put("timezone", timezone);
             userJson.put("username", userName);
+            userJson.put("state", user.getState());
         }
         catch (Exception ex)
         {
-            s_logger.error("Failed to set json attributes", ex);
+            s_logger.error("Failed to update user", ex);
             return null;
         }
 
@@ -111,6 +133,18 @@ public class UserLocalGenerator extends LocalGenerator {
         // select a random user
         if(user == null)    user = randUserSelect();
 
+        AccountVO account = accountDao.findById(user.getAccountId());
+        if (!isUsable(account))
+        {
+            return null;
+        }
+
+        if (!user.getState().equals(Account.State.enabled))
+        {
+            s_logger.info("This user[" + user.getUsername() + " is not enabled, but " + user.getState().toString() + ", so skip to lock this");
+            return user;
+        }
+
         localUserManager.lock(user, modified);
         s_logger.info("Successfully locked user[" + user.getUsername() + "]");
 
@@ -123,6 +157,18 @@ public class UserLocalGenerator extends LocalGenerator {
 
         // select a random user
         if(user == null)    user = randUserSelect();
+
+        AccountVO account = accountDao.findById(user.getAccountId());
+        if (!isUsable(account))
+        {
+            return null;
+        }
+
+        if (!user.getState().equals(Account.State.enabled))
+        {
+            s_logger.info("This user[" + user.getUsername() + " is not enabled, but " + user.getState().toString() + ", so skip to disable this");
+            return user;
+        }
 
         localUserManager.disable(user, modified);
         s_logger.info("Successfully disabled user[" + user.getUsername() + "]");
@@ -137,6 +183,18 @@ public class UserLocalGenerator extends LocalGenerator {
         // select a random user
         if(user == null)    user = randUserSelect();
 
+        AccountVO account = accountDao.findById(user.getAccountId());
+        if (!isUsable(account))
+        {
+            return null;
+        }
+
+        if (user.getState().equals(Account.State.enabled))
+        {
+            s_logger.info("This user[" + user.getUsername() + " is already enabled, so skip to enable this");
+            return user;
+        }
+
         localUserManager.enable(user, modified);
         s_logger.info("Successfully enabled user[" + user.getUsername() + "]");
 
@@ -150,8 +208,21 @@ public class UserLocalGenerator extends LocalGenerator {
         // select a random user
         if(user == null)    user = randUserSelect();
 
-        localUserManager.remove(user, removed);
-        s_logger.info("Successfully removed user[" + user.getUsername() + "]");
+        AccountVO account = accountDao.findById(user.getAccountId());
+        if (!isUsable(account))
+        {
+            return null;
+        }
+
+        try
+        {
+            localUserManager.remove(user, removed);
+            s_logger.info("Successfully removed user[" + user.getUsername() + "]");
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to remove user[" + user.getUsername() + "] : " + ex);
+        }
 
         return user;
     }

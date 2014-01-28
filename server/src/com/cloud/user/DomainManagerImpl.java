@@ -221,7 +221,7 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
             }
         });
 
-        CallContext.current().putContextParameter(Domain.class, domain.getUuid());
+        if (CallContext.current() != null)  CallContext.current().putContextParameter(Domain.class, domain.getUuid());
         return domain;
     }
 

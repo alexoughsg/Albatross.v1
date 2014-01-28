@@ -56,6 +56,7 @@ import com.cloud.template.VirtualMachineTemplate;
 import com.cloud.user.Account;
 import com.cloud.user.User;
 import com.cloud.vm.VirtualMachine;
+import org.apache.cloudstack.region.Region;
 
 public class EventTypes {
 
@@ -456,6 +457,9 @@ public class EventTypes {
     //Alert generation
     public static final String ALERT_GENERATE = "ALERT.GENERATE";
 
+    // full scan with remote regions
+    public static final String EVENT_REGION_FULL_SCAN = "REGION.FULLSCAN";
+
     static {
 
         // TODO: need a way to force author adding event types to declare the entity details as well, with out braking
@@ -764,6 +768,8 @@ public class EventTypes {
         entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_DISABLE, AutoScaleVmGroup.class.getName());
         entityEventDetails.put(EVENT_GUEST_VLAN_RANGE_DEDICATE, GuestVlan.class.getName());
         entityEventDetails.put(EVENT_DEDICATED_GUEST_VLAN_RANGE_RELEASE, GuestVlan.class.getName());
+
+        entityEventDetails.put(EVENT_REGION_FULL_SCAN, Region.class.getName());
     }
 
     public static String getEntityForEvent(String eventName) {

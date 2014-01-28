@@ -10,7 +10,6 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.framework.events.EventSubscriber;
-import org.apache.cloudstack.mom.service.FullScanner;
 import org.apache.cloudstack.region.RegionVO;
 import org.apache.cloudstack.region.dao.RegionDao;
 import org.apache.log4j.Logger;
@@ -25,6 +24,7 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     private static final Logger s_logger = Logger.getLogger(MultiRegionSubscriber.class);
 
     protected int id;
+    //protected int fullScanInterval;
     protected Gson gson;
     protected Map<String,String> descMap = null;
 
@@ -39,7 +39,8 @@ public class MultiRegionSubscriber  implements EventSubscriber {
 
     protected List<RegionVO> regions;
 
-    protected static FullScanner fullScanner = new FullScanner();
+    //protected static FullScanner fullScanner = new FullScanner();
+    //protected static AutoGenerator autoGenerator = new AutoGenerator();
 
     public MultiRegionSubscriber(int id)
     {
@@ -107,13 +108,16 @@ public class MultiRegionSubscriber  implements EventSubscriber {
             Map.Entry e = (Map.Entry)i.next();
             s_logger.info("Key: " + e.getKey() + ", Value: " + e.getValue());
         }
-
-        fullScan();
     }
 
-    protected void fullScan()
+    /*protected void fullScan()
     {
         regions = findRemoteRegions();
         fullScanner.fullScan(regions);
     }
+
+    protected void autoGenerate()
+    {
+        autoGenerator.generate();
+    }*/
 }

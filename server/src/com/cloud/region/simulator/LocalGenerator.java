@@ -1,4 +1,4 @@
-package org.apache.cloudstack.mom.simulator;
+package com.cloud.region.simulator;
 
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
@@ -8,6 +8,7 @@ import com.cloud.user.UserVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
+import org.apache.log4j.Logger;
 
 import java.util.Date;
 import java.util.List;
@@ -15,6 +16,8 @@ import java.util.Random;
 import java.util.TimeZone;
 
 public class LocalGenerator {
+
+    private static final Logger s_logger = Logger.getLogger(LocalGenerator.class);
 
     protected UserDao userDao;
     protected AccountDao accountDao;
@@ -25,6 +28,12 @@ public class LocalGenerator {
         this.userDao = ComponentContext.getComponent(UserDao.class);
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
+    }
+
+    protected int generateRandNumber(int max)
+    {
+        double index = Math.random();
+        return (int)((index * 1000) % max);
     }
 
     protected String generateRandString()
@@ -53,13 +62,16 @@ public class LocalGenerator {
         List<DomainVO> domainList = domainDao.listAll();
         Random rand = new Random();
         int num = 0;
+        DomainVO domain = null;
         while(num == 0)
         {
             // exclude the 'ROOT' domain
             num = rand.nextInt(domainList.size());
-            if (includeRoot)    break;
+            if (!includeRoot && num == 0)   continue;
+
+            domain = domainList.get(num);
+            if (domain.getState().toString().equals("Active"))  break;
         }
-        DomainVO domain = domainList.get(num);
         return domain;
     }
 
@@ -80,9 +92,9 @@ public class LocalGenerator {
 
     protected short randAccountTypeSelect()
     {
-        Random rand = new Random(10);
+        /*Random rand = new Random(10);
         int num = rand.nextInt();
-        if (num % 2 == 0)   return Account.ACCOUNT_TYPE_ADMIN;
+        if (num % 2 == 0)   return Account.ACCOUNT_TYPE_ADMIN;*/
         return Account.ACCOUNT_TYPE_NORMAL;
     }
 
@@ -101,5 +113,26 @@ public class LocalGenerator {
         Random rand = new Random();
         int num = rand.nextInt(ids.length);
         return TimeZone.getTimeZone(ids[num]).getDisplayName();
+    }
+
+    protected boolean isUsable(AccountVO account)
+    {
+        if (account.getType() == Account.ACCOUNT_TYPE_PROJECT)
+        {
+            s_logger.info("Account[" + account.getAccountName() + "] is project type, so skip to remove this.");
+            return false;
+        }
+
+        if (account.getId() == Account.ACCOUNT_ID_SYSTEM) {
+            s_logger.info("Account[" + account.getAccountName() + "] is system account, skip to remove this.");
+            return false;
+        }
+
+        if (account.getDomainId() == Account.ACCOUNT_ID_SYSTEM && account.getType() == Account.ACCOUNT_TYPE_ADMIN) {
+            s_logger.info("Account[" + account.getAccountName() + "] is admin account, skip to remove this.");
+            return false;
+        }
+
+        return true;
     }
 }

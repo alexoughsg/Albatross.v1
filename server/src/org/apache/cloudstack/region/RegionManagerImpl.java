@@ -25,6 +25,8 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.event.ActionEvent;
+import com.cloud.event.EventTypes;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -160,6 +162,7 @@ public class RegionManagerImpl extends ManagerBase implements RegionManager, Man
      * {@inheritDoc}
      */
     @Override
+    @ActionEvent(eventType = EventTypes.EVENT_REGION_FULL_SCAN, eventDescription = "full scan with remote regions")
     public List<RegionVO> listRegions(Integer id, String name) {
         List<RegionVO> regions = new ArrayList<RegionVO>();
         if (id != null) {

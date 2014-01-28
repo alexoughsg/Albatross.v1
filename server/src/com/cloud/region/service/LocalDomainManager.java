@@ -1,4 +1,4 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
@@ -55,14 +55,7 @@ public class LocalDomainManager {
         final String initialName = BaseService.getAttrValue(jsonObject, "initialname");
         final String domainUUID = UUID.randomUUID().toString();
 
-
-
-        // how do I get 'ownerId' here??????
-        final long ownerId = 0;
-
-
-
-        Domain domain = domainManager.createDomain(domainName, ownerId, parentId, networkDomain, domainUUID, initialName, created);
+        Domain domain = domainManager.createDomain(domainName, parentId, parentId, networkDomain, domainUUID, initialName, created);
         s_logger.info("Successfully created a domain[" + domain.getName() + "]");
         return domain;
     }

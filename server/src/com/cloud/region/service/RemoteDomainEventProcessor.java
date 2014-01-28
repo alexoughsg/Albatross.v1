@@ -1,7 +1,6 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONArray;
-
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
 

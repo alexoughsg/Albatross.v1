@@ -1,4 +1,4 @@
-package org.apache.cloudstack.mom.service;
+package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
@@ -104,7 +104,7 @@ public class LocalAccountManager {
     public void enable(Object object, Date modified)
     {
         AccountVO account = (AccountVO)object;
-        accountManager.enableUser(account.getId(), modified);
+        accountManager.enableAccount(account.getId(), modified);
         s_logger.info("Successfully enabled an account[" + account.getAccountName() + "]");
     }
 

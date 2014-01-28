@@ -4,7 +4,7 @@ import com.cloud.domain.Domain;
 import com.cloud.user.Account;
 import com.cloud.user.User;
 import com.cloud.user.UserVO;
-import org.apache.cloudstack.mom.service.AccountService;
+import com.cloud.region.service.AccountService;
 import org.apache.cloudstack.framework.events.Event;
 import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
