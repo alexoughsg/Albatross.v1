@@ -956,6 +956,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             } catch (Throwable t) {
                 s_logger.error("Error trying to full scan", t);
             }
+
+            s_logger.debug("Full scanner is completed.");
         }
     }
 
@@ -971,6 +973,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             } catch (Throwable t) {
                 s_logger.error("Error trying to resource generate", t);
             }
+
+            s_logger.debug("Auto resource generator is completed.");
         }
     }
 

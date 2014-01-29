@@ -119,7 +119,7 @@ public class DomainInterface extends BaseInterface {
          */
 
         String paramStr = "command=createDomain&name=" + name + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
-        if (parentDomainId != null)    paramStr += "&'parentdomainid'=" + parentDomainId;
+        if (parentDomainId != null)    paramStr += "&parentdomainid=" + parentDomainId;
         if (domainId != null)   paramStr += "&domainid=" + domainId;
         if (networkDomain != null) paramStr += "&networkdomain=" + networkDomain;
         return sendApacheGet(paramStr);

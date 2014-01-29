@@ -94,16 +94,16 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     @Override
     public void onEvent(Event event)
     {
-        s_logger.info("HANDLER" + id + " Category: " + event.getEventCategory() + " type: " + event.getEventType() +
+        s_logger.debug("HANDLER" + id + " Category: " + event.getEventCategory() + " type: " + event.getEventType() +
                 " resource type: " + event.getResourceType() + " resource UUID: " + event.getResourceUUID());
-        s_logger.info("BODY : " + event.getDescription());
+        s_logger.debug("BODY : " + event.getDescription());
 
         Type stringStringMap = new TypeToken<Map<String, String>>(){}.getType();
         this.descMap = gson.fromJson(event.getDescription(), stringStringMap);
         Iterator i = this.descMap.entrySet().iterator();
         while (i.hasNext()) {
             Map.Entry e = (Map.Entry)i.next();
-            s_logger.info("Key: " + e.getKey() + ", Value: " + e.getValue());
+            s_logger.debug("Key: " + e.getKey() + ", Value: " + e.getValue());
         }
     }
 }
