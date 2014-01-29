@@ -48,7 +48,7 @@ public class UserInterface extends BaseInterface {
         if (domainId != null)
             paramStr += "&domainid=" + domainId;
         if (timezone != null)
-            paramStr += "&timezone=" + timezone;
+            paramStr += "&timezone=" + URLEncoder.encode(timezone, "UTF-8");
 
         return sendApachePost(paramStr);
     }
@@ -66,7 +66,7 @@ public class UserInterface extends BaseInterface {
         if (firstName != null)  paramStr += "&firstname=" + firstName;
         if (lastName != null)   paramStr += "&lastname=" + lastName;
         if (password != null)    paramStr += "&password=" + password;
-        if (timezone != null)    paramStr += "&timezone=" + timezone;
+        if (timezone != null)    paramStr += "&timezone=" + URLEncoder.encode(timezone, "UTF-8");
         if (userAPIKey != null)    paramStr += "&userapikey=" + userAPIKey;
         if (userName != null)   paramStr += "&username=" + userName;
         if (userSecretKey != null) paramStr += "&usersecretkey=" + userSecretKey;

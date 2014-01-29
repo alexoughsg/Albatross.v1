@@ -46,8 +46,8 @@ public class AutoGenerator {
                 break;
             case 8:
                 //domainGenerator.remove(null);
-                accountGenerator.remove(null);
-                userGenerator.remove(null);
+                //accountGenerator.remove(null);
+                //userGenerator.remove(null);
                 break;
             case 9:
                 domainGeneratorEvent.create();

@@ -75,7 +75,7 @@ public class AccountInterface extends BaseInterface {
         if (domainId != null)   paramStr += "&domainid=" + domainId;
         if (accountDetails != null) paramStr += "&accountdetails=" + accountDetails;
         if (networkDomain != null) paramStr += "&networkdomain=" + networkDomain;
-        if (timezone != null)   paramStr += "&timezone=" + timezone;
+        if (timezone != null)   paramStr += "&timezone=" + URLEncoder.encode(timezone, "UTF-8");
 
         return sendApachePost(paramStr);
     }
