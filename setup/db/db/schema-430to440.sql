@@ -428,3 +428,5 @@ UPDATE `cloud`.`configuration` SET `description` = 'If set to true, StartCommand
 
 INSERT IGNORE INTO `cloud`.`configuration` VALUES ('Advanced', 'DEFAULT', 'management-server', 'region.full.scan.interval', '3600000', 'The interval (in milliseconds) when full scan is processed.', NULL, NULL, NULL, false);
 INSERT IGNORE INTO `cloud`.`configuration` VALUES ('Advanced', 'DEFAULT', 'management-server', 'region.auto.generation.interval', '0', 'The interval (in milliseconds) when resource auto generation is processed.', NULL, NULL, NULL, false);
+
+create table rmap (id bigint(20) unsigned NOT NULL AUTO_INCREMENT, uuid varchar(40) NOT NULL, source varchar(40) NOT NULL, region_id bigint(20) unsigned NOT NULL, created timestamp NULL DEFAULT NULL, modified timestamp NULL DEFAULT NULL, removed timestamp NULL DEFAULT NULL, PRIMARY KEY (`id`));

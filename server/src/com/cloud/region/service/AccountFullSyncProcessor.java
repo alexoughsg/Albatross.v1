@@ -4,10 +4,12 @@ import com.amazonaws.util.json.JSONArray;
 import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
+import com.cloud.rmap.RmapVO;
 import com.cloud.user.Account;
 import com.cloud.user.AccountVO;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -28,17 +30,16 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
     private LocalAccountManager localAccountManager;
     private RemoteAccountEventProcessor eventProcessor;
 
-    public AccountFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId) throws Exception
+    //public AccountFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId) throws Exception
+    public AccountFullSyncProcessor(RegionVO region, DomainVO parentDomain) throws Exception
     {
-        this.hostName = hostName;
-        this.endPoint = endPoint;
-        this.userName = userName;
-        this.password = password;
+        super(region);
 
         this.accountDao = ComponentContext.getComponent(AccountDao.class);
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
 
-        localParent = domainDao.findById(parentDomainId);
+        //localParent = domainDao.findById(parentDomainId);
+        localParent = parentDomain;
         localList = accountDao.findActiveAccountsForDomain(localParent.getId());
         /*List<Long> domainIds = new ArrayList<Long>();
         domainIds.add(localParent.getId());
@@ -53,13 +54,29 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
             }
         }
 
+        String remoteParentDomainId = null;
         DomainService domainService = new DomainService(hostName, endPoint, userName, password);
-        remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
-        if (remoteParent == null)
+        RmapVO rmap = rmapDao.findRmapBySource(localParent.getUuid(), region.getId());
+        if (rmap == null)
         {
-            throw new Exception("The parent domain[" + localParent.getPath() + "] cannot be found in the remote region.");
+            remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
+            if (remoteParent == null)
+            {
+                throw new Exception("The parent domain[" + localParent.getPath() + "] cannot be found in the remote region[" + hostName + "].");
+            }
+            remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
+            rmap = new RmapVO(localParent.getUuid(), region.getId(), remoteParentDomainId);
+            rmapDao.create(rmap);
         }
-        String remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
+        else
+        {
+            remoteParentDomainId = rmap.getUuid();
+            remoteParent = domainService.findDomain(remoteParentDomainId);
+            if (remoteParent == null)
+            {
+                throw new Exception("The parent domain[" + remoteParentDomainId + "] cannot be found in the remote region[" + hostName + "].");
+            }
+        }
         AccountService accountService = new AccountService(hostName, endPoint, userName, password);
         JSONArray remoteArray = accountService.list(remoteParentDomainId);
         remoteList = new ArrayList<JSONObject>();
@@ -144,10 +161,26 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
     protected AccountVO findLocal(JSONObject jsonObject)
     {
         String name = BaseService.getAttrValue(jsonObject, "name");
+        String remoteUuid = BaseService.getAttrValue(jsonObject, "id");
+        RmapVO rmap = rmapDao.findSource(remoteUuid, region.getId());
 
         for (AccountVO account : localList)
         {
-            if (!account.getAccountName().equals(name))  continue;
+            if (rmap == null)
+            {
+                if (!account.getAccountName().equals(name))  continue;
+            }
+            else
+            {
+                if(!rmap.getUuid().equals(account.getUuid()))    continue;
+            }
+
+            if (rmap == null)
+            {
+                rmap = new RmapVO(account.getUuid(), region.getId(), remoteUuid);
+                rmapDao.create(rmap);
+            }
+
             return account;
         }
 
@@ -184,10 +217,28 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
     {
         AccountVO account = (AccountVO)object;
 
+        RmapVO rmap = rmapDao.findRmapBySource(account.getUuid(), region.getId());
+
         for (JSONObject jsonObject : remoteList)
         {
             String remoteName = BaseService.getAttrValue(jsonObject, "name");
-            if (!account.getAccountName().equals(remoteName))  continue;
+            String remoteUuid = BaseService.getAttrValue(jsonObject, "id");
+
+            if (rmap == null)
+            {
+                if (!account.getAccountName().equals(remoteName))  continue;
+            }
+            else
+            {
+                if(!rmap.getUuid().equals(remoteUuid))    continue;
+            }
+
+            if (rmap == null)
+            {
+                rmap = new RmapVO(account.getUuid(), region.getId(), remoteUuid);
+                rmapDao.create(rmap);
+            }
+
             return jsonObject;
         }
 
@@ -387,7 +438,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
         if (created.after(removed))
         {
             // create this remote in the local region
+            String remoteUuid = BaseService.getAttrValue(remoteJson, "id");
             localAccountManager.create(remoteJson, created);
+            RmapVO rmap = new RmapVO(removedAccount.getUuid(), region.getId(), remoteUuid);
+            rmapDao.create(rmap);
         }
 
         processedRemoteList.add(remoteJson);
@@ -520,7 +574,10 @@ public class AccountFullSyncProcessor extends FullSyncProcessor {
             {
                 // create this remote in the local region
                 Date created = getDate(remoteJson, "created");
-                localAccountManager.create(remoteJson, created);
+                String remoteUuid = BaseService.getAttrValue(remoteJson, "id");
+                AccountVO account = (AccountVO)localAccountManager.create(remoteJson, created);
+                RmapVO rmap = new RmapVO(account.getUuid(), region.getId(), remoteUuid);
+                rmapDao.create(rmap);
                 s_logger.info("AccountJSON[" + accountName + "] successfully created in the local region");
             }
             catch(Exception ex)

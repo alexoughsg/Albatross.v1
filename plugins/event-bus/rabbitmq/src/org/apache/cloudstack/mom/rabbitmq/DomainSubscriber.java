@@ -39,7 +39,8 @@ public class DomainSubscriber extends MultiRegionSubscriber {
         {
             try
             {
-                DomainService domainService = new DomainService(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
+                //DomainService domainService = new DomainService(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
+                DomainService domainService = new DomainService(region);
                 Method method = domainService.getClass().getMethod(methodName, Domain.class, String.class);
                 method.invoke(domainService, domain, oldDomainName);
             }

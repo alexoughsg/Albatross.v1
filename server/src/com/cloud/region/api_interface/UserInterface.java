@@ -40,6 +40,24 @@ public class UserInterface extends BaseInterface {
         return userArray;
     }
 
+    public JSONObject findUser(String uuid) throws Exception
+    {
+        String paramStr = "command=listUsers&id=" + uuid + "&listAll=true&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseService.hasAttribute(retJson, "user"))
+        {
+            return null;
+        }
+
+        if (retJson.length() == 0)  return null;
+
+        JSONArray users = retJson.getJSONArray("user");
+        if (users == null)    return null;
+        if (users.length() == 0)  return null;
+
+        return users.getJSONObject(0);
+    }
+
     public JSONObject createUser(String userName, String password, String email, String firstName, String lastName, String accountName, String domainId, String timezone) throws Exception
     {
         String paramStr = "command=createUser&username=" + userName + "&password=" + password;

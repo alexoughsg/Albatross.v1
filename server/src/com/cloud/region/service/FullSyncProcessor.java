@@ -1,7 +1,10 @@
 package com.cloud.region.service;
 
 import com.amazonaws.util.json.JSONObject;
+import com.cloud.rmap.dao.RmapDao;
 import com.cloud.utils.DateUtil;
+import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.region.RegionVO;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -10,6 +13,7 @@ import java.util.TimeZone;
 
 public abstract class FullSyncProcessor {
 
+    protected RegionVO region;
     protected String hostName;
     protected String endPoint;
     protected String userName;
@@ -18,6 +22,19 @@ public abstract class FullSyncProcessor {
     protected JSONObject remoteParent;
     protected List<JSONObject> remoteList;
     protected List<JSONObject> processedRemoteList = new ArrayList<JSONObject>();
+
+    protected RmapDao rmapDao;
+
+    public FullSyncProcessor(RegionVO region)
+    {
+        this.region = region;
+        this.hostName = region.getName();
+        this.endPoint = region.getEndPoint();
+        this.userName = region.getUserName();
+        this.password = region.getPassword();
+
+        this.rmapDao = ComponentContext.getComponent(RmapDao.class);
+    }
 
     protected boolean strCompare(String str1, String str2)
     {

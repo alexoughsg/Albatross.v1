@@ -24,7 +24,6 @@ public class MultiRegionSubscriber  implements EventSubscriber {
     private static final Logger s_logger = Logger.getLogger(MultiRegionSubscriber.class);
 
     protected int id;
-    //protected int fullScanInterval;
     protected Gson gson;
     protected Map<String,String> descMap = null;
 

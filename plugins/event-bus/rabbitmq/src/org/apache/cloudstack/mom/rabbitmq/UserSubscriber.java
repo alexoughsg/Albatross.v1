@@ -43,7 +43,8 @@ public class UserSubscriber extends MultiRegionSubscriber {
         {
             try
             {
-                UserService userService = new UserService(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
+                //UserService userService = new UserService(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
+                UserService userService = new UserService(region);
                 Method method = userService.getClass().getMethod(methodName, User.class, Account.class, Domain.class, String.class);
                 method.invoke(userService, user, account, domain, oldUserName);
             }

@@ -45,6 +45,24 @@ public class DomainInterface extends BaseInterface {
         return retArray;
     }
 
+    public JSONObject findDomain(String uuid) throws Exception
+    {
+        String paramStr = "command=listDomains&id=" + uuid + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseService.hasAttribute(retJson, "domain"))
+        {
+            return null;
+        }
+
+        JSONArray domains = retJson.getJSONArray("domain");
+        if (domains == null)    return null;
+        if (domains.length() == 0)  return null;
+
+        JSONObject found = domains.getJSONObject(0);
+        modifyPath(found);
+        return found;
+    }
+
     public JSONObject findDomain(int level, String name, String path) throws Exception
     {
         // command=listDomains&response=json&sessionkey=null&_=1362457544896

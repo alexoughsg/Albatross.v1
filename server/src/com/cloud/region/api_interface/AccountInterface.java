@@ -50,8 +50,29 @@ public class AccountInterface extends BaseInterface {
 
         if (retJson.length() == 0)  return null;
 
-        JSONArray retArray = (JSONArray)retJson.get("account");
-        return retArray.getJSONObject(0);
+        JSONArray accounts = retJson.getJSONArray("account");
+        if (accounts == null)    return null;
+        if (accounts.length() == 0)  return null;
+
+        return accounts.getJSONObject(0);
+    }
+
+    public JSONObject findAccount(String uuid) throws Exception
+    {
+        String paramStr = "command=listAccounts&id=" + uuid + "&response=json&sessionkey=" + URLEncoder.encode(this.sessionKey, "UTF-8");
+        JSONObject retJson = sendApacheGet(paramStr);
+        if (!BaseService.hasAttribute(retJson, "account"))
+        {
+            return null;
+        }
+
+        if (retJson.length() == 0)  return null;
+
+        JSONArray accounts = (JSONArray)retJson.get("account");
+        if (accounts == null)    return null;
+        if (accounts.length() == 0)  return null;
+
+        return accounts.getJSONObject(0);
     }
 
     public JSONObject createAccount(String userName, String password, String email, String firstName, String lastName, String accountType, String domainId, String accountName, String accountDetails, String networkDomain, String timezone) throws Exception

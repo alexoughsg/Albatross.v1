@@ -5,6 +5,10 @@ import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
 import com.cloud.region.api_interface.BaseInterface;
 import com.cloud.region.api_interface.DomainInterface;
+import com.cloud.rmap.RmapVO;
+import com.cloud.rmap.dao.RmapDao;
+import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
 
 public class DomainService extends BaseService {
@@ -12,10 +16,24 @@ public class DomainService extends BaseService {
     private static final Logger s_logger = Logger.getLogger(DomainService.class);
     private DomainInterface apiInterface;
 
+    private RegionVO region;
+    private RmapDao rmapDao;
+
+    public DomainService(RegionVO region)
+    {
+        super(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword());
+        this.apiInterface = null;
+
+        this.region = region;
+        this.rmapDao = ComponentContext.getComponent(RmapDao.class);
+    }
+
     public DomainService(String hostName, String endPoint, String userName, String password)
     {
         super(hostName, endPoint, userName, password);
         this.apiInterface = null;
+
+        this.rmapDao = ComponentContext.getComponent(RmapDao.class);
     }
 
     private boolean isEqual(JSONObject domainJson, String domainName, String networkDomain)
@@ -64,6 +82,32 @@ public class DomainService extends BaseService {
         }
     }
 
+    private JSONObject find(String uuid)
+    {
+        try
+        {
+            JSONObject domainObj = this.apiInterface.findDomain(uuid);
+            return domainObj;
+        }
+        catch(Exception ex)
+        {
+            return null;
+        }
+    }
+
+    private void saveRmap(Domain domain, JSONObject resJson)
+    {
+        try
+        {
+            RmapVO rmapVO = new RmapVO(domain.getUuid(), region.getId(), BaseService.getAttrValue(resJson.getJSONObject("domain"), "id"));
+            rmapDao.create(rmapVO);
+        }
+        catch(Exception ex)
+        {
+
+        }
+    }
+
     protected JSONObject findByPath(String domainPath)
     {
         this.apiInterface = new DomainInterface(this.url);
@@ -106,6 +150,26 @@ public class DomainService extends BaseService {
         }
     }
 
+    public JSONObject findDomain(String uuid)
+    {
+        this.apiInterface = new DomainInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+            JSONObject domainJson = find(uuid);
+            s_logger.debug("Successfully found a domain[" + uuid + "]");
+            return domainJson;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to find domain", ex);
+            return null;
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
     public JSONObject findDomain(int level, String name, String path)
     {
         this.apiInterface = new DomainInterface(this.url);
@@ -118,7 +182,7 @@ public class DomainService extends BaseService {
         }
         catch(Exception ex)
         {
-            s_logger.error("Failed to find domain list", ex);
+            s_logger.error("Failed to find domain", ex);
             return null;
         }
         finally {
@@ -149,7 +213,13 @@ public class DomainService extends BaseService {
     public boolean create(Domain domain, String oldDomainName)
     {
         JSONObject resJson = create(domain.getName(), domain.getPath(), domain.getNetworkDomain());
-        return (resJson != null);
+        if (resJson != null)
+        {
+            saveRmap(domain, resJson);
+            return true;
+        }
+
+        return false;
     }
 
     public JSONObject create(String domainName, String domainPath, String networkDomain)
@@ -201,10 +271,56 @@ public class DomainService extends BaseService {
 
     public boolean delete(Domain domain, String oldDomainName)
     {
-        return delete(domain.getName(), domain.getPath());
+        RmapVO rmap = rmapDao.findRmapBySource(domain.getUuid(), region.getId());
+
+        JSONObject resJson = null;
+        if (rmap == null)
+        {
+            resJson = delete(domain.getName(), domain.getPath());
+            if (resJson != null)
+            {
+                saveRmap(domain, resJson);
+            }
+        }
+        else
+        {
+            deleteByUuid(rmap.getUuid());
+        }
+
+        return (resJson != null);
     }
 
-    public boolean delete(String domainName, String domainPath)
+    protected JSONObject deleteByUuid(String uuid)
+    {
+        this.apiInterface = new DomainInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+
+            // check if the domain already exists
+            JSONObject domainJson = find(uuid);
+            if (domainJson == null)
+            {
+                s_logger.error("domain[" + uuid + "] does not exists in host[" + this.hostName + "]");
+                return null;
+            }
+
+            JSONObject retJson = this.apiInterface.deleteDomain(uuid, false);
+            queryAsyncJob(retJson);
+            s_logger.debug("Successfully deleted domain[" + uuid + "] in host[" + this.hostName + "]");
+            return domainJson;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to delete domain by name[" + uuid + "] in host[" + this.hostName + "]", ex);
+            return null;
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
+    public JSONObject delete(String domainName, String domainPath)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -218,19 +334,19 @@ public class DomainService extends BaseService {
             if (domainJson == null)
             {
                 s_logger.error("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
-                return false;
+                return null;
             }
 
             String id = getAttrValue(domainJson, "id");
             JSONObject retJson = this.apiInterface.deleteDomain(id, false);
             queryAsyncJob(retJson);
             s_logger.debug("Successfully deleted domain[" + domainName + "] in host[" + this.hostName + "]");
-            return true;
+            return domainJson;
         }
         catch(Exception ex)
         {
             s_logger.error("Failed to delete domain by name[" + domainName + "]", ex);
-            return false;
+            return null;
         }
         finally {
             this.apiInterface.logout();
@@ -239,12 +355,62 @@ public class DomainService extends BaseService {
 
     public boolean update(Domain domain, String oldDomainName)
     {
-        // replace the new domain path with the old path
-        String domainPath = domain.getPath().replace(domain.getName(), oldDomainName);
-        return update(oldDomainName, domain.getName(), domainPath, domain.getNetworkDomain());
+        RmapVO rmap = rmapDao.findRmapBySource(domain.getUuid(), region.getId());
+
+        JSONObject resJson = null;
+        if (rmap == null)
+        {
+            // replace the new domain path with the old path
+            String domainPath = domain.getPath().replace(domain.getName(), oldDomainName);
+            resJson = update(oldDomainName, domain.getName(), domainPath, domain.getNetworkDomain());
+            if (resJson != null)
+            {
+                saveRmap(domain, resJson);
+            }
+        }
+        else
+        {
+            updateByUuid(rmap.getUuid(), domain.getName(), domain.getNetworkDomain());
+        }
+
+        return (resJson != null);
     }
 
-    public boolean update(String domainName, String newName, String domainPath, String networkDomain)
+    protected JSONObject updateByUuid(String uuid, String newName, String networkDomain)
+    {
+        this.apiInterface = new DomainInterface(this.url);
+        try
+        {
+            this.apiInterface.login(this.userName, this.password);
+
+            JSONObject domainJson = find(uuid);
+            if (domainJson == null)
+            {
+                s_logger.error("domain[" + uuid + "] does not exists in host[" + this.hostName + "]");
+                return null;
+            }
+
+            if(isEqual(domainJson, newName, networkDomain))
+            {
+                s_logger.debug("domain[" + uuid + "] has same attrs in host[" + this.hostName + "]");
+                return domainJson;
+            }
+
+            this.apiInterface.updateDomain(uuid, newName, networkDomain);
+            s_logger.debug("Successfully updated domain[" + uuid + "] in host[" + this.hostName + "]");
+            return domainJson;
+        }
+        catch(Exception ex)
+        {
+            s_logger.error("Failed to delete domain by name[" + uuid + "] in host[" + this.hostName + "]", ex);
+            return null;
+        }
+        finally {
+            this.apiInterface.logout();
+        }
+    }
+
+    public JSONObject update(String domainName, String newName, String domainPath, String networkDomain)
     {
         this.apiInterface = new DomainInterface(this.url);
         try
@@ -257,24 +423,24 @@ public class DomainService extends BaseService {
             if (domainJson == null)
             {
                 s_logger.error("domain[" + domainName + "] does not exists in host[" + this.hostName + "]");
-                return false;
+                return null;
             }
 
             if(isEqual(domainJson, newName, networkDomain))
             {
                 s_logger.debug("domain[" + newName + "] has same attrs in host[" + this.hostName + "]");
-                return false;
+                return domainJson;
             }
 
             String id = getAttrValue(domainJson, "id");
             this.apiInterface.updateDomain(id, newName, networkDomain);
             s_logger.debug("Successfully updated domain[" + domainName + "] in host[" + this.hostName + "]");
-            return true;
+            return domainJson;
         }
         catch(Exception ex)
         {
             s_logger.error("Failed to delete domain by name[" + domainName + "]", ex);
-            return false;
+            return null;
         }
         finally {
             this.apiInterface.logout();

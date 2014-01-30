@@ -5,7 +5,9 @@ import com.amazonaws.util.json.JSONObject;
 import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
+import com.cloud.rmap.RmapVO;
 import com.cloud.utils.component.ComponentContext;
+import org.apache.cloudstack.region.RegionVO;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -25,16 +27,15 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
     private LocalDomainManager localDomainManager;
     private RemoteDomainEventProcessor eventProcessor;
 
-    public DomainFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId) throws Exception
+    //public DomainFullSyncProcessor(String hostName, String endPoint, String userName, String password, Long parentDomainId) throws Exception
+    public DomainFullSyncProcessor(RegionVO region, DomainVO parentDomain) throws Exception
     {
-        this.hostName = hostName;
-        this.endPoint = endPoint;
-        this.userName = userName;
-        this.password = password;
+        super(region);
 
         this.domainDao = ComponentContext.getComponent(DomainDao.class);
 
-        localParent = domainDao.findById(parentDomainId);
+        //localParent = domainDao.findById(parentDomainId);
+        localParent = parentDomain;
         //localList = domainDao.listAll();
         localList = domainDao.findImmediateChildrenForParent(localParent.getId());
         for(int idx = localList.size()-1; idx >= 0; idx--)
@@ -44,13 +45,29 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
             localList.remove(domain);
         }
 
+        String remoteParentDomainId = null;
         DomainService domainService = new DomainService(hostName, endPoint, userName, password);
-        remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
-        if (remoteParent == null)
+        RmapVO rmap = rmapDao.findRmapBySource(localParent.getUuid(), region.getId());
+        if (rmap == null)
         {
-            throw new Exception("The parent domain[" + localParent.getPath() + "] cannot be found in the remote region.");
+            remoteParent = domainService.findDomain(localParent.getLevel(), localParent.getName(), localParent.getPath());
+            if (remoteParent == null)
+            {
+                throw new Exception("The parent domain[" + localParent.getPath() + "] cannot be found in the remote region[" + hostName + "].");
+            }
+            remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
+            rmap = new RmapVO(localParent.getUuid(), region.getId(), remoteParentDomainId);
+            rmapDao.create(rmap);
         }
-        String remoteParentDomainId = BaseService.getAttrValue(remoteParent, "id");
+        else
+        {
+            remoteParentDomainId = rmap.getUuid();
+            remoteParent = domainService.findDomain(remoteParentDomainId);
+            if (remoteParent == null)
+            {
+                throw new Exception("The parent domain[" + remoteParentDomainId + "] cannot be found in the remote region[" + hostName + "].");
+            }
+        }
         JSONArray remoteArray = domainService.listChildren(remoteParentDomainId, false);
         remoteList = new ArrayList<JSONObject>();
         for(int idx = 0; idx < remoteArray.length(); idx++)
@@ -129,16 +146,30 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         }
     }
 
-    //@Override
     protected DomainVO findLocal(JSONObject jsonObject)
     {
         String remotePath = BaseService.getAttrValue(jsonObject, "path");
+        String remoteUuid = BaseService.getAttrValue(jsonObject, "id");
+        RmapVO rmap = rmapDao.findSource(remoteUuid, region.getId());
 
-        for (Object object : localList)
+        for (DomainVO domain : localList)
         {
-            DomainVO domain = (DomainVO)object;
-            String localPath = domain.getPath();
-            if (!BaseService.compareDomainPath(localPath, remotePath))  continue;
+            if (rmap == null)
+            {
+                String localPath = domain.getPath();
+                if (!BaseService.compareDomainPath(localPath, remotePath))  continue;
+            }
+            else
+            {
+                if(!rmap.getUuid().equals(domain.getUuid()))    continue;
+            }
+
+            if (rmap == null)
+            {
+                rmap = new RmapVO(domain.getUuid(), region.getId(), remoteUuid);
+                rmapDao.create(rmap);
+            }
+
             return domain;
         }
 
@@ -152,7 +183,6 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         3. if the local initial name is equal to the remote initial name, return this local
         4. return null
      */
-    //@Override
     protected DomainVO findLocalByInitialName(JSONObject jsonObject)
     {
         String remoteName = BaseService.getAttrValue(jsonObject, "name");
@@ -182,10 +212,28 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         DomainVO domain = (DomainVO)object;
         String localPath = domain.getPath();
 
+        RmapVO rmap = rmapDao.findRmapBySource(domain.getUuid(), region.getId());
+
         for (JSONObject jsonObject : remoteList)
         {
             String remotePath = BaseService.getAttrValue(jsonObject, "path");
-            if (!BaseService.compareDomainPath(localPath, remotePath))  continue;
+            String remoteUuid = BaseService.getAttrValue(jsonObject, "id");
+
+            if (rmap == null)
+            {
+                if (!BaseService.compareDomainPath(localPath, remotePath))  continue;
+            }
+            else
+            {
+                if(!rmap.getUuid().equals(remoteUuid))    continue;
+            }
+
+            if (rmap == null)
+            {
+                rmap = new RmapVO(domain.getUuid(), region.getId(), remoteUuid);
+                rmapDao.create(rmap);
+            }
+
             return jsonObject;
         }
 
@@ -382,7 +430,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
         {
             // create this remote in the local region
             String parentPath = BaseService.getAttrValue(remoteParent, "path");
+            String remoteUuid = BaseService.getAttrValue(remoteJson, "id");
             localDomainManager.create(remoteJson, parentPath, created);
+            RmapVO rmap = new RmapVO(removedDomain.getUuid(), region.getId(), remoteUuid);
+            rmapDao.create(rmap);
         }
 
         processedRemoteList.add(remoteJson);
@@ -520,7 +571,10 @@ public class DomainFullSyncProcessor extends FullSyncProcessor {
                 // create this remote in the local region
                 Date created = getDate(remoteJson, "created");
                 String parentPath = BaseService.getAttrValue(remoteParent, "path");
-                localDomainManager.create(remoteJson, parentPath, created);
+                String remoteUuid = BaseService.getAttrValue(remoteJson, "id");
+                domain = (DomainVO)localDomainManager.create(remoteJson, parentPath, created);
+                RmapVO rmap = new RmapVO(domain.getUuid(), region.getId(), remoteUuid);
+                rmapDao.create(rmap);
                 s_logger.info("DomainJSON[" + domainPath + "] successfully created in the local region");
             }
             catch(Exception ex)

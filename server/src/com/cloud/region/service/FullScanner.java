@@ -100,7 +100,8 @@ public class FullScanner {
 
         for (RegionVO region : regions)
         {
-            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            //DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            DomainFullSyncProcessor syncProcessor = new DomainFullSyncProcessor(region, domain);
             syncProcessor.synchronize();
 
             syncProcessors.add(syncProcessor);
@@ -132,7 +133,8 @@ public class FullScanner {
 
         for (RegionVO region : regions)
         {
-            AccountFullSyncProcessor syncProcessor = new AccountFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            //AccountFullSyncProcessor syncProcessor = new AccountFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            AccountFullSyncProcessor syncProcessor = new AccountFullSyncProcessor(region, domain);
             syncProcessor.synchronize();
 
             syncProcessors.add(syncProcessor);
@@ -164,7 +166,8 @@ public class FullScanner {
 
         for (RegionVO region : regions)
         {
-            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            //UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region.getName(), region.getEndPoint(), region.getUserName(), region.getPassword(), domain.getId());
+            UserFullSyncProcessor syncProcessor = new UserFullSyncProcessor(region, domain);
             syncProcessor.synchronize();
 
             syncProcessors.add(syncProcessor);
