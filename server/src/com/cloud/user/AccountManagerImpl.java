@@ -1129,6 +1129,10 @@ public class AccountManagerImpl extends ManagerBase implements AccountManager, M
         if (secretKey != null) {
             user.setSecretKey(secretKey);
         }
+        if (state != null)
+        {
+            user.setState(state);
+        }
 
         if (modified == null)   user.setModified(new Date());
         else    user.setModified(modified);
