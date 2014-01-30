@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.user;
 
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.cloudstack.acl.ControlledEntity;
@@ -65,13 +66,15 @@ public interface AccountService {
      * @return UserAccount object
      */
     UserAccount lockUser(long userId);
+    UserAccount lockUser(long userId, Date modified);
 
     Account getSystemAccount();
 
     User getSystemUser();
 
-        User
-        createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId, String userUUID);
+    User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId, String userUUID);
+    User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
+                             String userUUID, String initialName, Account.State state, Date created);
 
     boolean isAdmin(short accountType);
 

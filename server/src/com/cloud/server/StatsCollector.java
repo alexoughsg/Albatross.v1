@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
+import com.cloud.region.service.FullScanner;
+import com.cloud.region.simulator.AutoGenerator;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -188,6 +190,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     long volumeStatsInterval = -1L;
     long autoScaleStatsInterval = -1L;
     int vmDiskStatsInterval = 0;
+    long fullScanInterval = -1L;
+    long autoResourceGenerationInterval = -1L;
 
     private ScheduledExecutorService _diskStatsUpdateExecutor;
     private int _usageAggregationRange = 1440;
@@ -227,6 +231,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         volumeStatsInterval = NumbersUtil.parseLong(configs.get("volume.stats.interval"), -1L);
         autoScaleStatsInterval = NumbersUtil.parseLong(configs.get("autoscale.stats.interval"), 60000L);
         vmDiskStatsInterval = NumbersUtil.parseInt(configs.get("vm.disk.stats.interval"), 0);
+        fullScanInterval = NumbersUtil.parseLong(configs.get("region.full.scan.interval"), 3600000L);   // 1h
+        autoResourceGenerationInterval = NumbersUtil.parseLong(configs.get("region.auto.generation.interval"), -1L);    // none
 
         if (hostStatsInterval > 0) {
             _executor.scheduleWithFixedDelay(new HostCollector(), 15000L, hostStatsInterval, TimeUnit.MILLISECONDS);
@@ -248,6 +254,14 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
             if (vmDiskStatsInterval < 300)
                 vmDiskStatsInterval = 300;
             _executor.scheduleAtFixedRate(new VmDiskStatsTask(), vmDiskStatsInterval, vmDiskStatsInterval, TimeUnit.SECONDS);
+        }
+
+        if (fullScanInterval > 0) {
+            _executor.scheduleWithFixedDelay(new FullScanRunner(), 15000L, fullScanInterval, TimeUnit.MILLISECONDS);
+        }
+
+        if (autoResourceGenerationInterval > 0) {
+            _executor.scheduleWithFixedDelay(new AutoGenerationRunner(), 15000L, autoResourceGenerationInterval, TimeUnit.MILLISECONDS);
         }
 
         //Schedule disk stats update task
@@ -929,4 +943,39 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     public StorageStats getStoragePoolStats(long id) {
         return _storagePoolStats.get(id);
     }
+
+    class FullScanRunner extends ManagedContextRunnable {
+        @Override
+        protected void runInContext() {
+            try {
+                s_logger.debug("Full scanner is running...");
+
+                FullScanner fullScanner = new FullScanner();
+                fullScanner.fullScan();
+
+            } catch (Throwable t) {
+                s_logger.error("Error trying to full scan", t);
+            }
+
+            s_logger.debug("Full scanner is completed.");
+        }
+    }
+
+    class AutoGenerationRunner extends ManagedContextRunnable {
+        @Override
+        protected void runInContext() {
+            try {
+                s_logger.debug("Auto resource generator is running...");
+
+                AutoGenerator autoGenerator = new AutoGenerator();
+                autoGenerator.generate();
+
+            } catch (Throwable t) {
+                s_logger.error("Error trying to resource generate", t);
+            }
+
+            s_logger.debug("Auto resource generator is completed.");
+        }
+    }
+
 }

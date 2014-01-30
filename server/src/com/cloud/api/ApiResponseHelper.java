@@ -366,6 +366,9 @@ public class ApiResponseHelper implements ResponseGenerator {
         if (domain.getChildCount() > 0) {
             domainResponse.setHasChild(true);
         }
+        domainResponse.setCreated(domain.getCreated());
+        domainResponse.setModified(domain.getModified());
+        domainResponse.setInitialName(domain.getInitialName());
         domainResponse.setObjectName("domain");
         return domainResponse;
     }

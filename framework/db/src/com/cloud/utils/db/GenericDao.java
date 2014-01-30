@@ -17,6 +17,7 @@
 package com.cloud.utils.db;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +38,11 @@ public interface GenericDao<T, ID extends Serializable> {
      * This column can be used if the table wants to track creation time.
      */
     static final String CREATED_COLUMN = "created";
+
+    /**
+     * This column can be used if the table wants to track modified time.
+     */
+    static final String MODIFIED_COLUMN = "modified";
 
     /**
      */
@@ -206,6 +212,14 @@ public interface GenericDao<T, ID extends Serializable> {
      * @return true if removed.
      */
     boolean remove(ID id);
+
+    /**
+     * remove the entity bean.  This will call delete automatically if
+     * the entity bean does not have a removed field.
+     * @param id
+     * @return true if removed.
+     */
+    boolean remove(ID id, Date removed);
 
     /**
      * Remove based on the search criteria.  This will delete if the VO object

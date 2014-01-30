@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.user;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -62,7 +63,19 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public UserAccount disableUser(long userId, Date modified) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public UserAccount enableUser(long userId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount enableUser(long userId, Date modified) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -74,8 +87,20 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public UserAccount lockUser(long userId, Date modified) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public UserAccount updateUser(UpdateUserCmd cmd) {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount updateUser(Long id, String userName, String firstName, String lastName, String password, String email, String apiKey, String secretKey,
+                                  String timeZone, Account.State state, String initialName, Date modified){
         return null;
     }
 
@@ -86,8 +111,17 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public Account disableAccount(String accountName, Long domainId, Long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException {
+        return null;
+    }
+
+    @Override
     public Account enableAccount(String accountName, Long domainId, Long accountId) {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    public Account enableAccount(String accountName, Long domainId, Long accountId, Date modified) {
         return null;
     }
 
@@ -98,9 +132,20 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public Account lockAccount(String accountName, Long domainId, Long accountId, Date modified) {
+        return null;
+    }
+
+    @Override
     public Account updateAccount(UpdateAccountCmd cmd) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    @Override
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Account.State state, String initialName, Date modified)
+    {
+        return false;
     }
 
     @Override
@@ -116,6 +161,11 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     @Override
     public boolean deleteUser(DeleteUserCmd deleteUserCmd) {
         // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean deleteUser(long id, Date removed) {
         return false;
     }
 
@@ -186,6 +236,11 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public boolean disableAccount(long accountId, Date modified) throws ConcurrentOperationException, ResourceUnavailableException {
+        return false;
+    }
+
+    @Override
     public void checkAccess(Account account, Domain domain) throws PermissionDeniedException {
         // TODO Auto-generated method stub
 
@@ -245,7 +300,7 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
-    public boolean enableAccount(long accountId) {
+    public boolean enableAccount(long accountId, Date modified) {
         // TODO Auto-generated method stub
         return false;
     }
@@ -306,6 +361,12 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
+                           String userUUID, String initialName, Account.State state, Date created){
+        return null;
+    }
+
+    @Override
     public RoleType getRoleType(Account account) {
         return null;
     }
@@ -317,9 +378,18 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public boolean deleteAccount(AccountVO account, long callerUserId, Account caller, Date arg3){
+        return true;
+    }
+
+    @Override
     public Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid) {
         // TODO Auto-generated method stub
         return null;
     }
 
+    @Override
+    public AccountVO createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid, Account.State state, String initialName, Date created){
+        return null;
+    }
 }

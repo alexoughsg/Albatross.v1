@@ -50,6 +50,10 @@ public interface Account extends ControlledEntity, InternalIdentity, Identity {
 
     public State getState();
 
+    public Date getCreated();
+
+    public Date getModified();
+
     public Date getRemoved();
 
     public String getNetworkDomain();
@@ -61,4 +65,7 @@ public interface Account extends ControlledEntity, InternalIdentity, Identity {
 
     boolean isDefault();
 
+    String getInitialName();
+
+    void setInitialName(String initialName);
 }

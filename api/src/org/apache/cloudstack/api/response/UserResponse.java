@@ -73,6 +73,10 @@ public class UserResponse extends BaseResponse {
     @Param(description = "the domain name of the user")
     private String domainName;
 
+    @SerializedName(ApiConstants.PATH)
+    @Param(description = "path of the Domain the account belongs too")
+    private String domainPath;
+
     @SerializedName("timezone")
     @Param(description = "the timezone user was created in")
     private String timezone;
@@ -96,6 +100,14 @@ public class UserResponse extends BaseResponse {
     @SerializedName(ApiConstants.IS_DEFAULT)
     @Param(description = "true if user is default, false otherwise", since = "4.2.0")
     private Boolean isDefault;
+
+    @SerializedName(ApiConstants.MODIFIED)
+    @Param(description = "the timestamp when this user was last modified")
+    private Date modified;
+
+    @SerializedName(ApiConstants.INITIAL_NAME)
+    @Param(description = "the initial name of the domain")
+    private String initialName;
 
     @Override
     public String getObjectId() {
@@ -190,6 +202,14 @@ public class UserResponse extends BaseResponse {
         this.domainName = domainName;
     }
 
+    public String getDomainPath() {
+        return domainPath;
+    }
+
+    public void setDomainPath(String domainPath) {
+        this.domainPath = domainPath;
+    }
+
     public String getTimezone() {
         return timezone;
     }
@@ -232,5 +252,17 @@ public class UserResponse extends BaseResponse {
 
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+
+    public Date getModified() { return modified; }
+
+    public void setModified(Date modified) { this.modified = modified; }
+
+    public String getInitialName() {
+        return initialName;
+    }
+
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
     }
 }

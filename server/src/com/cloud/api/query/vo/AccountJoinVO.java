@@ -52,6 +52,12 @@ public class AccountJoinVO extends BaseViewVO implements InternalIdentity, Ident
     @Enumerated(value = EnumType.STRING)
     private State state;
 
+    @Column(name = GenericDao.CREATED_COLUMN)
+    private Date created;
+
+    @Column(name = GenericDao.MODIFIED_COLUMN)
+    private Date modified;
+
     @Column(name = GenericDao.REMOVED_COLUMN)
     private Date removed;
 
@@ -181,6 +187,9 @@ public class AccountJoinVO extends BaseViewVO implements InternalIdentity, Ident
     @Column(name = "default")
     boolean isDefault;
 
+    @Column(name = "initial_name")
+    private String initialName = null;
+
     public AccountJoinVO() {
     }
 
@@ -204,6 +213,12 @@ public class AccountJoinVO extends BaseViewVO implements InternalIdentity, Ident
 
     public State getState() {
         return state;
+    }
+
+    public Date getCreated() { return created; }
+
+    public Date getModified() {
+        return modified;
     }
 
     public Date getRemoved() {
@@ -376,5 +391,9 @@ public class AccountJoinVO extends BaseViewVO implements InternalIdentity, Ident
 
     public boolean isDefault() {
         return isDefault;
+    }
+
+    public String getInitialName() {
+        return initialName;
     }
 }

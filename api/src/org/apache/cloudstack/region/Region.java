@@ -30,7 +30,19 @@ public interface Region {
 
     public void setName(String name);
 
+    public String getUserName();
+
+    public void setUserName(String userName);
+
+    public String getPassword();
+
+    public void setPassword(String password);
+
     public String getEndPoint();
+
+    public boolean isActive();
+
+    public void setActive(boolean active);
 
     public boolean checkIfServiceEnabled(Service service);
 

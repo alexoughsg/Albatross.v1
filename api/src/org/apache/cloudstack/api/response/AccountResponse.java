@@ -16,6 +16,7 @@
 // under the License.
 package org.apache.cloudstack.api.response;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,10 @@ public class AccountResponse extends BaseResponse implements ResourceLimitAndCou
     @SerializedName(ApiConstants.DOMAIN)
     @Param(description = "name of the Domain the account belongs too")
     private String domainName;
+
+    @SerializedName(ApiConstants.PATH)
+    @Param(description = "path of the Domain the account belongs too")
+    private String domainPath;
 
     @SerializedName(ApiConstants.DEFAULT_ZONE_ID)
     @Param(description = "the default zone of the account")
@@ -239,6 +244,18 @@ public class AccountResponse extends BaseResponse implements ResourceLimitAndCou
     @Param(description = "true if account is default, false otherwise", since = "4.2.0")
     private Boolean isDefault;
 
+    @SerializedName(ApiConstants.CREATED)
+    @Param(description = "the timestamp when this account was created")
+    private Date created;
+
+    @SerializedName(ApiConstants.MODIFIED)
+    @Param(description = "the timestamp when this account was last modified")
+    private Date modified;
+
+    @SerializedName(ApiConstants.INITIAL_NAME)
+    @Param(description = "the initial name of the domain")
+    private String initialName;
+
     @Override
     public String getObjectId() {
         return id;
@@ -260,8 +277,10 @@ public class AccountResponse extends BaseResponse implements ResourceLimitAndCou
         this.domainId = domainId;
     }
 
-    public void setDomainName(String domainName) {
-        this.domainName = domainName;
+    public void setDomainName(String domainName) { this.domainName = domainName; }
+
+    public void setDomainPath(String domainPath) {
+        this.domainPath = domainPath;
     }
 
     public void setBytesReceived(Long bytesReceived) {
@@ -485,5 +504,17 @@ public class AccountResponse extends BaseResponse implements ResourceLimitAndCou
 
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+
+    public void setCreated(Date created) { this.created = created; }
+
+    public void setModified(Date modified) { this.modified = modified; }
+
+    public String getInitialName() {
+        return initialName;
+    }
+
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
     }
 }

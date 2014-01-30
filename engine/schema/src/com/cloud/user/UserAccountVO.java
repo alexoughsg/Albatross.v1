@@ -75,6 +75,9 @@ public class UserAccountVO implements UserAccount, InternalIdentity {
     @Column(name = GenericDao.REMOVED_COLUMN)
     private Date removed;
 
+    @Column(name = GenericDao.MODIFIED_COLUMN)
+    private Date modified;
+
     @Column(name = "timezone")
     private String timezone;
 
@@ -208,6 +211,15 @@ public class UserAccountVO implements UserAccount, InternalIdentity {
 
     public void setRemoved(Date removed) {
         this.removed = removed;
+    }
+
+    @Override
+    public Date getModified() {
+        return modified;
+    }
+
+    public void setModified(Date modified) {
+        this.modified = modified;
     }
 
     @Override

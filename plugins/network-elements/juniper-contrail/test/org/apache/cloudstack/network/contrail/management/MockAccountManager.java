@@ -17,6 +17,7 @@
 
 package org.apache.cloudstack.network.contrail.management;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -117,6 +118,12 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
+                    String userUUID, String initialName, Account.State state, Date created){
+        return null;
+    }
+
+    @Override
     public UserAccount createUserAccount(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, short arg7, Long arg8, String arg9,
         Map<String, String> arg10, String arg11, String arg12) {
         // TODO Auto-generated method stub
@@ -192,6 +199,12 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public UserAccount lockUser(long arg0, Date arg1) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public void markUserRegistered(long arg0) {
         // TODO Auto-generated method stub
 
@@ -248,7 +261,18 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public boolean deleteAccount(AccountVO arg0, long arg1, Account arg2, Date arg3){
+        return true;
+    }
+
+    @Override
     public boolean deleteUser(DeleteUserCmd arg0) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean deleteUser(long arg0, Date arg1) {
         // TODO Auto-generated method stub
         return false;
     }
@@ -266,7 +290,18 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public boolean disableAccount(long arg0, Date arg1) throws ConcurrentOperationException, ResourceUnavailableException {
+        return false;
+    }
+
+    @Override
     public Account disableAccount(String arg0, Long arg1, Long arg2) throws ConcurrentOperationException, ResourceUnavailableException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Account disableAccount(String arg0, Long arg1, Long arg2, Date arg3) throws ConcurrentOperationException, ResourceUnavailableException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -278,7 +313,13 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
-    public boolean enableAccount(long arg0) {
+    public UserAccount disableUser(long arg0, Date arg1) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean enableAccount(long arg0, Date arg2) {
         // TODO Auto-generated method stub
         return false;
     }
@@ -290,7 +331,19 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public Account enableAccount(String arg0, Long arg1, Long arg2, Date arg3) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public UserAccount enableUser(long arg0) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount enableUser(long arg0, Date arg1) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -308,14 +361,32 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public Account lockAccount(String arg0, Long arg1, Long arg2, Date arg3) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public Account updateAccount(UpdateAccountCmd arg0) {
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
+    public boolean updateAccount(AccountVO account, String newAccountName, String newNetworkDomain, Map<String, String> details, Account.State state, String initialName, Date modified)
+    {
+        return false;
+    }
+
+    @Override
     public UserAccount updateUser(UpdateUserCmd arg0) {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount updateUser(Long id, String userName, String firstName, String lastName, String password, String email, String apiKey, String secretKey,
+                           String timeZone, Account.State state, String initialName, Date modified){
         return null;
     }
 
@@ -331,8 +402,19 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
-    public Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid) {
+    public Account createAccount(String accountName, short accountType, Long domainId, String networkDomain, Map<String, String> details, String uuid)
+    {
+        return createAccount(accountName, accountType, domainId, networkDomain, details, uuid, null, null, null);
+    }
+
+    @Override
+    public AccountVO createAccount(final String accountName, final short accountType, final Long domainId, final String networkDomain, final Map<String, String> details, final String uuid, final Account.State state, final String initialName, final Date created)
+    {
         final AccountVO account = new AccountVO(accountName, domainId, networkDomain, accountType, uuid);
+        account.setInitialName(initialName);
+        if (state != null)  account.setState(state);
+        if (created == null)    account.setCreated(new Date());
+        else    account.setCreated(created);
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {

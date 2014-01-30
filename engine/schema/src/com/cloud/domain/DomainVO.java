@@ -73,6 +73,15 @@ public class DomainVO implements Domain {
     @Column(name = "uuid")
     private String uuid;
 
+    @Column(name = GenericDao.CREATED_COLUMN)
+    private Date created;
+
+    @Column(name = GenericDao.MODIFIED_COLUMN)
+    private Date modified;
+
+    @Column(name = "initial_name")
+    private String initialName = null;
+
     public DomainVO() {
     }
 
@@ -88,6 +97,10 @@ public class DomainVO implements Domain {
     }
 
     public DomainVO(String name, long owner, Long parentId, String networkDomain, String uuid) {
+        this(name, owner, parentId, networkDomain, uuid, null);
+    }
+
+    public DomainVO(String name, long owner, Long parentId, String networkDomain, String uuid, Date created) {
         this.parent = parentId;
         this.name = name;
         this.accountId = owner;
@@ -96,6 +109,8 @@ public class DomainVO implements Domain {
         this.state = Domain.State.Active;
         this.networkDomain = networkDomain;
         this.uuid = uuid;
+        this.created = created;
+        if (created != null)    this.modified = created;
     }
 
     @Override
@@ -139,6 +154,8 @@ public class DomainVO implements Domain {
     public Date getRemoved() {
         return removed;
     }
+
+    public void setRemoved(Date removed) { this.removed = removed; }
 
     @Override
     public String getPath() {
@@ -208,6 +225,26 @@ public class DomainVO implements Domain {
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+    }
+
+    @Override
+    public Date getCreated() { return created; }
+
+    public void setCreated(Date created) { this.created = created; }
+
+    @Override
+    public Date getModified() { return modified; }
+
+    public void setModified(Date modified) { this.modified = modified; }
+
+    @Override
+    public void setInitialName(String initialName) {
+        this.initialName = initialName;
+    }
+
+    @Override
+    public String getInitialName() {
+        return initialName;
     }
 
 }

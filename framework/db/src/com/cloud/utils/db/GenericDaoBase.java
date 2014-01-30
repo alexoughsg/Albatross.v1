@@ -1423,7 +1423,7 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
 
     @DB()
     protected Object generateValue(final Attribute attr) {
-        if (attr.is(Attribute.Flag.Created) || attr.is(Attribute.Flag.Removed)) {
+        if (attr.is(Attribute.Flag.Created) || attr.is(Attribute.Flag.Removed) || attr.is(Attribute.Flag.Modified)) {
             return new Date();
         } else if (attr.is(Attribute.Flag.TableGV)) {
             return null;
@@ -1736,6 +1736,11 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
 
     @Override
     public boolean remove(final ID id) {
+        return remove(id, null);
+    }
+
+    @Override
+    public boolean remove(final ID id, Date removed) {
         if (_removeSql == null) {
             return expunge(id);
         }
@@ -1747,7 +1752,7 @@ public abstract class GenericDaoBase<T, ID extends Serializable> extends Compone
             txn.start();
             pstmt = txn.prepareAutoCloseStatement(_removeSql.first());
             final Attribute[] attrs = _removeSql.second();
-            prepareAttribute(1, pstmt, attrs[attrs.length - 1], null);
+            prepareAttribute(1, pstmt, attrs[attrs.length - 1], removed);
             for (int i = 0; i < attrs.length - 1; i++) {
                 prepareAttribute(i + 2, pstmt, attrs[i], id);
             }
